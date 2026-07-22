@@ -36,6 +36,9 @@ export interface Paciente {
   dob?: string | null;
   sex?: string | null;
   responsible?: string | null;
+  pai_nome?: string | null;
+  mae_nome?: string | null;
+  email_responsavel?: string | null;
   diagnosis?: string | null;
   therapist?: string | null;
   notes?: string | null;
@@ -119,6 +122,20 @@ export interface Avaliacao {
   created_at?: string;
 }
 
+export interface Despesa {
+  id: number;
+  clinic_id: string;
+  descricao: string;
+  categoria: 'folha' | 'aluguel' | 'marketing' | 'equipamentos' | 'adm' | 'outros';
+  valor: number;
+  mes: string;
+  data?: string | null;
+  status: 'pago' | 'pendente';
+  recorrente: boolean;
+  notas?: string | null;
+  created_at?: string;
+}
+
 export interface BlogPost {
   id: number;
   titulo: string;
@@ -166,6 +183,7 @@ export interface AppData {
   evaluations: Avaliacao[];
   team: Funcionario[];
   profiles: Usuario[];
+  expenses: Despesa[];
 }
 
 export interface AppUser {

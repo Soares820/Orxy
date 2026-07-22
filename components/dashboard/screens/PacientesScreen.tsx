@@ -7,6 +7,8 @@ import type { Paciente } from '@/lib/types';
 
 type FilterStatus = 'todos' | 'ativo' | 'inativo';
 
+const emptyForm = { name: '', dob: '', diagnosis: '', responsible: '', pai_nome: '', mae_nome: '', email_responsavel: '', notes: '' };
+
 export default function PacientesScreen() {
   const { state, dispatch } = useApp();
   const { data } = state;
@@ -15,7 +17,7 @@ export default function PacientesScreen() {
   const [filter, setFilter] = useState<FilterStatus>('todos');
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Paciente | null>(null);
-  const [form, setForm] = useState({ name: '', dob: '', diagnosis: '', responsible: '', notes: '' });
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
   const filtered = useMemo(() => {
@@ -28,13 +30,22 @@ export default function PacientesScreen() {
 
   function openNew() {
     setSelected(null);
-    setForm({ name: '', dob: '', diagnosis: '', responsible: '', notes: '' });
+    setForm(emptyForm);
     setShowModal(true);
   }
 
   function openEdit(p: Paciente) {
     setSelected(p);
-    setForm({ name: p.name, dob: p.dob ?? '', diagnosis: p.diagnosis ?? '', responsible: p.responsible ?? '', notes: p.notes ?? '' });
+    setForm({
+      name: p.name,
+      dob: p.dob ?? '',
+      diagnosis: p.diagnosis ?? '',
+      responsible: p.responsible ?? '',
+      pai_nome: p.pai_nome ?? '',
+      mae_nome: p.mae_nome ?? '',
+      email_responsavel: p.email_responsavel ?? '',
+      notes: p.notes ?? '',
+    });
     setShowModal(true);
   }
 
@@ -51,16 +62,27 @@ export default function PacientesScreen() {
       const { data: userRow } = await supabase.from('users').select('clinic_id').eq('auth_id', uid).single();
       const clinic_id = userRow?.clinic_id;
 
+      const payload = {
+        name: form.name,
+        dob: form.dob || null,
+        diagnosis: form.diagnosis || null,
+        responsible: form.responsible || null,
+        pai_nome: form.pai_nome || null,
+        mae_nome: form.mae_nome || null,
+        email_responsavel: form.email_responsavel || null,
+        notes: form.notes || null,
+      };
+
       if (selected) {
         const { data: updated } = await supabase.from('pacientes')
-          .update({ name: form.name, dob: form.dob || null, diagnosis: form.diagnosis || null, responsible: form.responsible || null, notes: form.notes || null })
+          .update(payload)
           .eq('id', selected.id)
           .select()
           .single();
         if (updated) dispatch({ type: 'UPDATE_CHILD', payload: updated });
       } else {
         const { data: created } = await supabase.from('pacientes')
-          .insert({ name: form.name, dob: form.dob || null, diagnosis: form.diagnosis || null, responsible: form.responsible || null, notes: form.notes || null, status: 'ativo', clinic_id })
+          .insert({ ...payload, status: 'ativo', clinic_id })
           .select()
           .single();
         if (created) dispatch({ type: 'ADD_CHILD', payload: created });
@@ -147,8 +169,15 @@ export default function PacientesScreen() {
                     {p.status}
                   </span>
                 </div>
-                {p.diagnosis && <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 8 }}><strong>Diagnóstico:</strong> {p.diagnosis}</div>}
-                {p.responsible && <div style={{ fontSize: 12, color: 'var(--t3)' }}>👤 {p.responsible}</div>}
+                {p.diagnosis && <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 6 }}><strong>Diagnóstico:</strong> {p.diagnosis}</div>}
+                {(p.pai_nome || p.mae_nome) && (
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4 }}>
+                    {p.pai_nome && <span>Pai: {p.pai_nome}</span>}
+                    {p.pai_nome && p.mae_nome && <span> · </span>}
+                    {p.mae_nome && <span>Mãe: {p.mae_nome}</span>}
+                  </div>
+                )}
+                {p.responsible && <div style={{ fontSize: 12, color: 'var(--t3)' }}>Resp: {p.responsible}</div>}
               </div>
             ))}
           </div>
@@ -158,17 +187,18 @@ export default function PacientesScreen() {
       {/* Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setShowModal(false)}>
-          <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selected ? 'Editar paciente' : 'Novo paciente'}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
             </div>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Dados do paciente */}
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1 }}>Dados do paciente</div>
               {[
                 { label: 'Nome completo *', field: 'name', type: 'text', placeholder: 'Ex: Maria Eduarda Silva' },
                 { label: 'Data de nascimento', field: 'dob', type: 'date', placeholder: '' },
                 { label: 'Diagnóstico', field: 'diagnosis', type: 'text', placeholder: 'Ex: TEA nível 1' },
-                { label: 'Responsável', field: 'responsible', type: 'text', placeholder: 'Nome do responsável' },
               ].map(({ label, field, type, placeholder }) => (
                 <div key={field}>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>{label}</label>
@@ -182,10 +212,31 @@ export default function PacientesScreen() {
                   />
                 </div>
               ))}
+
+              {/* Dados familiares */}
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 6 }}>Dados dos pais / responsavel</div>
+              {[
+                { label: 'Nome do pai', field: 'pai_nome', placeholder: 'Nome completo do pai' },
+                { label: 'Nome da mae', field: 'mae_nome', placeholder: 'Nome completo da mae' },
+                { label: 'Responsavel (legal)', field: 'responsible', placeholder: 'Responsavel legal pelo paciente' },
+                { label: 'E-mail para portal dos pais', field: 'email_responsavel', placeholder: 'email@exemplo.com' },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>{label}</label>
+                  <input
+                    type={field === 'email_responsavel' ? 'email' : 'text'}
+                    placeholder={placeholder}
+                    value={form[field as keyof typeof form]}
+                    onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                </div>
+              ))}
+
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Observações</label>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Observacoes</label>
                 <textarea
-                  placeholder="Informações adicionais..."
+                  placeholder="Informacoes adicionais..."
                   value={form.notes}
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={3}
@@ -194,7 +245,7 @@ export default function PacientesScreen() {
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>{saving ? 'Salvando...' : selected ? 'Salvar alterações' : 'Cadastrar paciente'}</button>
+                <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>{saving ? 'Salvando...' : selected ? 'Salvar alteracoes' : 'Cadastrar paciente'}</button>
               </div>
             </form>
           </div>

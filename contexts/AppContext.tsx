@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { AppUser, AppData, Paciente, Sessao, Contrato, Pagamento, Meta, Avaliacao, Funcionario, Usuario } from '@/lib/types';
+import type { AppUser, AppData, Paciente, Sessao, Contrato, Pagamento, Meta, Avaliacao, Funcionario, Usuario, Despesa } from '@/lib/types';
 
 // ─── State ────────────────────────────────────────────────
 
@@ -22,6 +22,7 @@ const EMPTY_DATA: AppData = {
   evaluations: [],
   team: [],
   profiles: [],
+  expenses: [],
 };
 
 const initialState: AppState = {
@@ -48,6 +49,9 @@ type Action =
   | { type: 'UPDATE_PAYMENT'; payload: Pagamento }
   | { type: 'ADD_GOAL'; payload: Meta }
   | { type: 'UPDATE_GOAL'; payload: Meta }
+  | { type: 'ADD_EXPENSE'; payload: Despesa }
+  | { type: 'UPDATE_EXPENSE'; payload: Despesa }
+  | { type: 'DELETE_EXPENSE'; payload: number }
   | { type: 'LOGOUT' };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -80,6 +84,12 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, data: { ...state.data, goals: [...state.data.goals, action.payload] } };
     case 'UPDATE_GOAL':
       return { ...state, data: { ...state.data, goals: state.data.goals.map((g) => g.id === action.payload.id ? action.payload : g) } };
+    case 'ADD_EXPENSE':
+      return { ...state, data: { ...state.data, expenses: [...state.data.expenses, action.payload] } };
+    case 'UPDATE_EXPENSE':
+      return { ...state, data: { ...state.data, expenses: state.data.expenses.map((e) => e.id === action.payload.id ? action.payload : e) } };
+    case 'DELETE_EXPENSE':
+      return { ...state, data: { ...state.data, expenses: state.data.expenses.filter((e) => e.id !== action.payload) } };
     case 'LOGOUT':
       return { ...initialState, loading: false, initialized: true };
     default:
@@ -112,7 +122,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadUserData = useCallback(async (clinicId: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const [pac, sess, cont, pag, met, aval, func, usuarios] = await Promise.allSettled([
+      const [pac, sess, cont, pag, met, aval, func, usuarios, desp] = await Promise.allSettled([
         supabase.from('pacientes').select('*').eq('clinic_id', clinicId).order('name'),
         supabase.from('sessoes').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
         supabase.from('contratos').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
@@ -121,6 +131,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('avaliacoes').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
         supabase.from('funcionarios').select('*').eq('clinic_id', clinicId).order('nome'),
         supabase.from('users').select('*').eq('clinic_id', clinicId).order('nome'),
+        supabase.from('despesas').select('*').eq('clinic_id', clinicId).order('mes', { ascending: false }),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,6 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           evaluations: pick(aval as PromiseSettledResult<{ data: unknown[] | null }>),
           team:        pick(func as PromiseSettledResult<{ data: unknown[] | null }>),
           profiles:    pick(usuarios as PromiseSettledResult<{ data: unknown[] | null }>),
+          expenses:    pick(desp as PromiseSettledResult<{ data: unknown[] | null }>),
         },
       });
     } catch (e) {
