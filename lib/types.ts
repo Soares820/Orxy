@@ -79,6 +79,7 @@ export interface Pagamento {
   id: number;
   clinic_id: string;
   child_id: number;
+  contrato_id?: number | null;
   mes: string;               // YYYY-MM
   valor_previsto: number;
   valor_recebido: number;
