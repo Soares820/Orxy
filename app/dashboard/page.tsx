@@ -17,12 +17,14 @@ import PortalScreen from '@/components/dashboard/screens/PortalScreen';
 import ContaScreen from '@/components/dashboard/screens/ContaScreen';
 import PeiScreen from '@/components/dashboard/screens/PeiScreen';
 import AvaliacoesScreen from '@/components/dashboard/screens/AvaliacoesScreen';
+import QuestionariosScreen from '@/components/dashboard/screens/QuestionariosScreen';
 
 const SCREEN_META: Record<Screen, { title: string; sub: string }> = {
   dashboard: { title: 'Início', sub: 'Bem-vindo(a) à plataforma T.O' },
   pacientes: { title: 'Pacientes', sub: 'Cadastro e fichas individuais' },
   pei: { title: 'Atividades', sub: 'Programas e execução DTT' },
   avaliacoes: { title: 'Avaliações', sub: 'PEDI, SPM, ABLLS, VBMAPP' },
+  questionarios: { title: 'Questionários', sub: 'M-CHAT-R, CARS, SDQ, SNAP-IV' },
   agenda: { title: 'Agenda', sub: 'Sessões e calendário' },
   financeiro: { title: 'Financeiro', sub: 'Contratos e pagamentos' },
   bi: { title: 'Evolução Clínica', sub: 'Indicadores e progresso clínico' },
@@ -172,6 +174,7 @@ function AppShell() {
     pacientes: <PacientesScreen />,
     pei: <PeiScreen />,
     avaliacoes: <AvaliacoesScreen />,
+    questionarios: <QuestionariosScreen />,
     agenda: <AgendaScreen />,
     financeiro: <FinanceiroScreen />,
     bi: <BiScreen />,

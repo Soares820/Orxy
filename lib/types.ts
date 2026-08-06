@@ -116,7 +116,7 @@ export interface Avaliacao {
   id: number;
   clinic_id: string;
   child_id: number;
-  tipo: 'PEDI' | 'PS' | 'SPM' | 'ABLLS' | 'VBMAPP' | 'CARS' | 'Vineland' | 'Outro';
+  tipo: 'PEDI' | 'PS' | 'SPM' | 'ABLLS' | 'VBMAPP' | 'CARS' | 'Vineland' | 'Personalizado' | 'Outro';
   data: string;
   scores: Record<string, unknown>;
   notas?: string | null;
@@ -127,7 +127,7 @@ export interface Despesa {
   id: number;
   clinic_id: string;
   descricao: string;
-  categoria: 'folha' | 'aluguel' | 'marketing' | 'equipamentos' | 'adm' | 'outros';
+  categoria: 'folha' | 'supervisao' | 'aluguel' | 'material' | 'equipamentos' | 'marketing' | 'formacao' | 'adm' | 'ti' | 'outros';
   valor: number;
   mes: string;
   data?: string | null;
@@ -161,9 +161,26 @@ export type Screen =
   | 'bi'
   | 'equipe'
   | 'avaliacoes'
+  | 'questionarios'
   | 'reavix'
   | 'portal'
   | 'conta';
+
+export interface QuestionarioResposta {
+  id: number;
+  clinic_id: string;
+  child_id: number;
+  instrumento: string;
+  respondente: string;
+  respostas: Record<string, string | number>;
+  score_total: number | null;
+  score_detalhe: Record<string, number>;
+  nivel_risco: string | null;
+  interpretacao: string | null;
+  observacoes: string;
+  data_avaliacao: string;
+  criado_em: string;
+}
 
 export type ToastType = 'check' | 'error' | 'info' | 'warn';
 
