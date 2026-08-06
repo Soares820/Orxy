@@ -168,7 +168,7 @@ export type Screen =
 
 export interface QuestionarioResposta {
   id: number;
-  clinic_id: string;
+  clinic_id: string; // UUID
   child_id: number;
   instrumento: string;
   respondente: string;

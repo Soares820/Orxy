@@ -1,7 +1,7 @@
 -- Questionários Diagnósticos — respostas e resultados
 CREATE TABLE IF NOT EXISTS public.questionarios_respostas (
   id            BIGSERIAL PRIMARY KEY,
-  clinic_id     TEXT NOT NULL,
+  clinic_id     UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
   child_id      INTEGER NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
   instrumento   TEXT NOT NULL,         -- 'M-CHAT-R', 'CARS', 'SDQ', 'SNAP-IV'
   respondente   TEXT DEFAULT '',       -- 'mãe', 'pai', 'terapeuta', etc.
