@@ -31,7 +31,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(role === 'family' ? '/dashboard?portal=1' : '/dashboard');
+    router.push('/dashboard');
   }
 
   return (

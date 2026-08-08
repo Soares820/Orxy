@@ -157,12 +157,6 @@ function AppShell() {
   };
 
   useEffect(() => {
-    // Lê ?portal=1 na URL e abre portal familiar, depois limpa o param
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('portal') === '1') {
-      setScreen('portal');
-      window.history.replaceState({}, '', '/dashboard');
-    }
     const saved = localStorage.getItem('theme');
     const isDark = saved !== 'light';
     setDark(isDark);
