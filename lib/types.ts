@@ -33,6 +33,7 @@ export interface Paciente {
   id: number;
   clinic_id: string;
   name: string;
+  codigo?: string | null;
   dob?: string | null;
   sex?: string | null;
   responsible?: string | null;

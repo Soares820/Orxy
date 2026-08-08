@@ -9,6 +9,10 @@ type FilterStatus = 'todos' | 'ativo' | 'inativo';
 
 const emptyForm = { name: '', dob: '', diagnosis: '', responsible: '', pai_nome: '', mae_nome: '', email_responsavel: '', notes: '' };
 
+function gerarCodigo(): string {
+  return (100000 + Math.floor(Math.random() * 900000)).toString();
+}
+
 export default function PacientesScreen() {
   const { state, dispatch } = useApp();
   const { data } = state;
@@ -19,6 +23,9 @@ export default function PacientesScreen() {
   const [selected, setSelected] = useState<Paciente | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState('');
 
   const filtered = useMemo(() => {
     return data.children.filter((c) => {
@@ -31,6 +38,8 @@ export default function PacientesScreen() {
   function openNew() {
     setSelected(null);
     setForm(emptyForm);
+    setSaveError('');
+    setInviteMsg('');
     setShowModal(true);
   }
 
@@ -46,6 +55,8 @@ export default function PacientesScreen() {
       email_responsavel: p.email_responsavel ?? '',
       notes: p.notes ?? '',
     });
+    setSaveError('');
+    setInviteMsg('');
     setShowModal(true);
   }
 
@@ -53,6 +64,7 @@ export default function PacientesScreen() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
+    setSaveError('');
     try {
       const { supabase } = await import('@/lib/supabase');
       const { data: userData } = await supabase.auth.getUser();
@@ -74,22 +86,53 @@ export default function PacientesScreen() {
       };
 
       if (selected) {
-        const { data: updated } = await supabase.from('pacientes')
+        const { data: updated, error } = await supabase.from('pacientes')
           .update(payload)
           .eq('id', selected.id)
           .select()
           .single();
+        if (error) { setSaveError(error.message); return; }
         if (updated) dispatch({ type: 'UPDATE_CHILD', payload: updated });
       } else {
-        const { data: created } = await supabase.from('pacientes')
-          .insert({ ...payload, status: 'ativo', clinic_id })
+        const { data: created, error } = await supabase.from('pacientes')
+          .insert({ ...payload, status: 'ativo', clinic_id, codigo: gerarCodigo() })
           .select()
           .single();
+        if (error) { setSaveError(error.message); return; }
         if (created) dispatch({ type: 'ADD_CHILD', payload: created });
       }
       setShowModal(false);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSendInvite() {
+    if (!form.email_responsavel || !state.user?.clinicId) return;
+    setInviting(true);
+    setInviteMsg('');
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      const nomeFamilia = form.responsible || form.mae_nome || form.pai_nome || form.name;
+      const res = await fetch('/api/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          clinic_id: state.user.clinicId,
+          email: form.email_responsavel,
+          nome: nomeFamilia,
+          cargo: 'Família',
+          role: 'familia',
+          invited_by: state.user.name,
+        }),
+      });
+      const result = await res.json();
+      setInviteMsg(result.ok
+        ? `Convite enviado para ${form.email_responsavel}!`
+        : `Erro: ${result.error ?? 'Tente novamente'}`);
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -164,6 +207,11 @@ export default function PacientesScreen() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, color: 'var(--t1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                     {p.dob && <div style={{ fontSize: 12, color: 'var(--t3)' }}>{calcAge(p.dob)} anos</div>}
+                    {p.codigo && (
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>
+                        Código: <strong style={{ color: 'var(--p)', letterSpacing: '0.05em', fontFamily: 'monospace' }}>{p.codigo}</strong>
+                      </div>
+                    )}
                   </div>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: p.status === 'ativo' ? 'rgba(16,185,129,.12)' : 'var(--sf2)', color: p.status === 'ativo' ? '#10b981' : 'var(--t3)' }}>
                     {p.status}
@@ -188,8 +236,16 @@ export default function PacientesScreen() {
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setShowModal(false)}>
           <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selected ? 'Editar paciente' : 'Novo paciente'}</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selected ? 'Editar paciente' : 'Novo paciente'}</h2>
+                {selected?.codigo && (
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 4 }}>
+                    Código do paciente:{' '}
+                    <strong style={{ color: 'var(--p)', letterSpacing: '0.15em', fontFamily: 'monospace', fontSize: 14 }}>{selected.codigo}</strong>
+                  </div>
+                )}
+              </div>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
             </div>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -219,12 +275,11 @@ export default function PacientesScreen() {
                 { label: 'Nome do pai', field: 'pai_nome', placeholder: 'Nome completo do pai' },
                 { label: 'Nome da mae', field: 'mae_nome', placeholder: 'Nome completo da mae' },
                 { label: 'Responsavel (legal)', field: 'responsible', placeholder: 'Responsavel legal pelo paciente' },
-                { label: 'E-mail para portal dos pais', field: 'email_responsavel', placeholder: 'email@exemplo.com' },
               ].map(({ label, field, placeholder }) => (
                 <div key={field}>
                   <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>{label}</label>
                   <input
-                    type={field === 'email_responsavel' ? 'email' : 'text'}
+                    type="text"
                     placeholder={placeholder}
                     value={form[field as keyof typeof form]}
                     onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
@@ -232,6 +287,36 @@ export default function PacientesScreen() {
                   />
                 </div>
               ))}
+
+              {/* Email para portal + botão de convite */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>E-mail para portal dos pais</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={form.email_responsavel}
+                    onChange={(e) => { setForm((f) => ({ ...f, email_responsavel: e.target.value })); setInviteMsg(''); }}
+                    style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  />
+                  {form.email_responsavel && (
+                    <button
+                      type="button"
+                      onClick={handleSendInvite}
+                      disabled={inviting}
+                      style={{ padding: '10px 14px', border: '1px solid var(--p)', borderRadius: 10, background: 'var(--ps)', color: 'var(--p)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
+                    >
+                      {inviting ? 'Enviando...' : '📧 Enviar acesso'}
+                    </button>
+                  )}
+                </div>
+                {inviteMsg && (
+                  <div style={{ marginTop: 6, fontSize: 12, padding: '6px 10px', borderRadius: 8, background: inviteMsg.startsWith('Erro') ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)', color: inviteMsg.startsWith('Erro') ? '#f87171' : '#10b981', fontWeight: 600 }}>
+                    {inviteMsg}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>Clique em "Enviar acesso" para mandar o convite de acesso ao portal da família</div>
+              </div>
 
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Observacoes</label>
@@ -243,6 +328,13 @@ export default function PacientesScreen() {
                   style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </div>
+
+              {saveError && (
+                <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#f87171' }}>
+                  {saveError}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
                 <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>{saving ? 'Salvando...' : selected ? 'Salvar alteracoes' : 'Cadastrar paciente'}</button>

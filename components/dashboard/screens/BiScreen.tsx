@@ -45,6 +45,10 @@ function BiEvolucao() {
   const [selectedChildId, setSelectedChildId] = useState<number | null>(
     data.children.find((c) => c.status === 'ativo')?.id ?? data.children[0]?.id ?? null
   );
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    const d = new Date(); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const months = useMemo(() => getLastNMonths(6), []);
 
@@ -60,6 +64,10 @@ function BiEvolucao() {
     return data.sessions.filter((s) => s.child_id === selectedChildId);
   }, [data.sessions, selectedChildId]);
 
+  const filteredSessions = useMemo(() => {
+    return childSessions.filter((s) => s.data >= dateFrom && s.data <= dateTo);
+  }, [childSessions, dateFrom, dateTo]);
+
   const goalStats = useMemo(() => {
     const total = childGoals.length;
     const atingido = childGoals.filter((g) => g.status === 'atingido').length;
@@ -70,12 +78,12 @@ function BiEvolucao() {
   }, [childGoals]);
 
   const sessionStats = useMemo(() => {
-    const total = childSessions.length;
-    const realizadas = childSessions.filter((s) => s.status === 'realizado').length;
-    const faltas = childSessions.filter((s) => s.status === 'falta' || s.status === 'cancelado').length;
+    const total = filteredSessions.length;
+    const realizadas = filteredSessions.filter((s) => s.status === 'realizado').length;
+    const faltas = filteredSessions.filter((s) => s.status === 'falta' || s.status === 'cancelado').length;
     const presenca = total > 0 ? Math.round((realizadas / total) * 100) : 0;
     return { total, realizadas, faltas, presenca };
-  }, [childSessions]);
+  }, [filteredSessions]);
 
   const sessionsByMonth = useMemo(() => months.map((m) => {
     const ms = childSessions.filter((s) => s.data.startsWith(m));
@@ -100,32 +108,92 @@ function BiEvolucao() {
     return Object.entries(map).sort((a, b) => b[1].total - a[1].total);
   }, [childGoals]);
 
+  const dttByActivity = useMemo(() => {
+    const dttSessions = filteredSessions
+      .filter((s) => s.tipo.startsWith('DTT - '))
+      .sort((a, b) => b.data.localeCompare(a.data) || (b.hora || '').localeCompare(a.hora || ''));
+
+    const map: Record<string, {
+      nome: string; categoria: string;
+      execs: Array<{ data: string; hora: string; acertos: number; parciais: number; erros: number; total: number; pct: number; obs?: string }>;
+    }> = {};
+
+    dttSessions.forEach((s) => {
+      const nome = s.tipo.slice(5);
+      if (!map[nome]) {
+        let cat = '';
+        try { cat = (JSON.parse(s.notas || '{}')).categoria || ''; } catch { /* noop */ }
+        map[nome] = { nome, categoria: cat, execs: [] };
+      }
+      try {
+        const n = JSON.parse(s.notas || '{}');
+        map[nome].execs.push({ data: s.data, hora: s.hora || '', acertos: n.acertos ?? 0, parciais: n.parciais ?? 0, erros: n.erros ?? 0, total: n.total ?? 0, pct: n.pct ?? 0, obs: n.obs });
+      } catch { /* noop */ }
+    });
+
+    return Object.values(map).sort((a, b) => b.execs.length - a.execs.length);
+  }, [filteredSessions]);
+
   const AREA_COLORS = ['var(--p)', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
 
   const activeChildren = data.children.filter((c) => c.status === 'ativo');
   const displayChildren = activeChildren.length > 0 ? activeChildren : data.children;
 
+  const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Seletor de paciente */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>Paciente:</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {displayChildren.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedChildId(c.id)}
-              style={{
-                padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                border: `1.5px solid ${selectedChildId === c.id ? 'var(--p)' : 'var(--bdr)'}`,
-                background: selectedChildId === c.id ? 'var(--ps)' : 'none',
-                color: selectedChildId === c.id ? 'var(--p)' : 'var(--t2)',
-                transition: 'all .15s',
-              }}
-            >
-              {c.name.split(' ')[0]}
-            </button>
-          ))}
+      {/* Filtros: paciente + período */}
+      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
+        <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Paciente</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {displayChildren.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedChildId(c.id)}
+                style={{
+                  padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${selectedChildId === c.id ? 'var(--p)' : 'var(--bdr)'}`,
+                  background: selectedChildId === c.id ? 'var(--ps)' : 'none',
+                  color: selectedChildId === c.id ? 'var(--p)' : 'var(--t2)',
+                  transition: 'all .15s',
+                }}
+              >
+                {c.name.split(' ')[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>De</div>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inp, width: 140 }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Até</div>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...inp, width: 140 }} />
+          </div>
+          <button
+            onClick={() => {
+              const d = new Date(); d.setMonth(d.getMonth() - 3);
+              setDateFrom(d.toISOString().slice(0, 10));
+              setDateTo(new Date().toISOString().slice(0, 10));
+            }}
+            style={{ padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+          >
+            3 meses
+          </button>
+          <button
+            onClick={() => {
+              const d = new Date(); d.setFullYear(d.getFullYear() - 1);
+              setDateFrom(d.toISOString().slice(0, 10));
+              setDateTo(new Date().toISOString().slice(0, 10));
+            }}
+            style={{ padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+          >
+            1 ano
+          </button>
         </div>
       </div>
 
@@ -139,7 +207,7 @@ function BiEvolucao() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(145px,1fr))', gap: 12 }}>
             <KpiCard value={goalStats.pct + '%'} label="Metas atingidas" color={goalStats.pct >= 60 ? '#10b981' : '#f59e0b'} sub={`${goalStats.atingido}/${goalStats.total}`} />
             <KpiCard value={goalStats.ativo} label="Metas ativas" color="var(--p)" />
-            <KpiCard value={sessionStats.presenca + '%'} label="Taxa de presença" color={sessionStats.presenca >= 80 ? '#10b981' : '#f59e0b'} sub={`${sessionStats.realizadas} sessões`} />
+            <KpiCard value={sessionStats.presenca + '%'} label="Presença no período" color={sessionStats.presenca >= 80 ? '#10b981' : '#f59e0b'} sub={`${sessionStats.realizadas} sessões`} />
             <KpiCard value={sessionStats.realizadas} label="Sessões realizadas" color="#10b981" />
             <KpiCard value={sessionStats.faltas} label="Faltas / Canceladas" color="#ef4444" />
             <KpiCard value={data.evaluations.filter((e) => e.child_id === selectedChildId).length} label="Avaliações" color="var(--v)" />
@@ -245,6 +313,87 @@ function BiEvolucao() {
               </div>
             </Card>
           </div>
+
+          {/* Atividades DTT executadas */}
+          <Card title={`Atividades DTT executadas no período (${dttByActivity.reduce((s, a) => s + a.execs.length, 0)} execuções)`}>
+            {dttByActivity.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 13 }}>
+                Nenhuma atividade DTT registrada no período selecionado
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {dttByActivity.map((act) => {
+                  const lastPct = act.execs[0]?.pct ?? 0;
+                  const firstPct = act.execs[act.execs.length - 1]?.pct ?? 0;
+                  const trend = lastPct - firstPct;
+                  return (
+                    <div key={act.nome} style={{ border: '1px solid var(--bdr)', borderRadius: 10, overflow: 'hidden' }}>
+                      {/* Activity header */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--sf2)' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{act.nome}</div>
+                          {act.categoria && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{act.categoria}</div>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: lastPct >= 80 ? '#10b981' : lastPct >= 50 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>{lastPct}%</div>
+                            <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>última sessão</div>
+                          </div>
+                          {act.execs.length > 1 && (
+                            <div style={{ fontSize: 12, fontWeight: 700, color: trend > 0 ? '#10b981' : trend < 0 ? '#ef4444' : 'var(--t3)', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 6, padding: '3px 8px' }}>
+                              {trend > 0 ? `+${trend}%` : trend < 0 ? `${trend}%` : '0%'}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 11, color: 'var(--t3)', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 6, padding: '3px 8px' }}>
+                            {act.execs.length}x
+                          </div>
+                        </div>
+                      </div>
+                      {/* Mini sparkline */}
+                      {act.execs.length > 1 && (
+                        <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'flex-end', gap: 3, height: 44 }}>
+                          {[...act.execs].reverse().map((ex, i) => (
+                            <div
+                              key={i}
+                              title={`${new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}: ${ex.pct}%`}
+                              style={{
+                                flex: 1, borderRadius: '3px 3px 0 0',
+                                height: `${Math.max(ex.pct, 4)}%`,
+                                background: ex.pct >= 80 ? '#10b981' : ex.pct >= 50 ? '#f59e0b' : '#ef4444',
+                                opacity: i === act.execs.length - 1 ? 1 : 0.6 + (i / act.execs.length) * 0.4,
+                                transition: 'height .3s ease',
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {/* Executions list (last 5) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                        {act.execs.slice(0, 5).map((ex, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderTop: '1px solid var(--bdr)', fontSize: 12 }}>
+                            <div style={{ color: 'var(--t3)', flexShrink: 0, width: 80 }}>{new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
+                            <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ color: '#10b981', fontWeight: 700 }}>✓ {ex.acertos}</span>
+                              {ex.parciais > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}>◑ {ex.parciais}</span>}
+                              <span style={{ color: '#ef4444', fontWeight: 700 }}>✗ {ex.erros}</span>
+                              <span style={{ color: 'var(--t3)' }}>/ {ex.total}</span>
+                            </div>
+                            <div style={{ fontWeight: 800, color: ex.pct >= 80 ? '#10b981' : ex.pct >= 50 ? '#f59e0b' : '#ef4444', flexShrink: 0 }}>{ex.pct}%</div>
+                            {ex.obs && <div style={{ color: 'var(--t3)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }} title={ex.obs}>{ex.obs}</div>}
+                          </div>
+                        ))}
+                        {act.execs.length > 5 && (
+                          <div style={{ padding: '6px 14px', fontSize: 11, color: 'var(--t3)', borderTop: '1px solid var(--bdr)', textAlign: 'center' }}>
+                            + {act.execs.length - 5} execuções mais antigas no período
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
 
           {/* Últimas avaliações */}
           {data.evaluations.filter((e) => e.child_id === selectedChildId).length > 0 && (

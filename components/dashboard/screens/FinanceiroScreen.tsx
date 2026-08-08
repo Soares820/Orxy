@@ -474,6 +474,7 @@ export default function FinanceiroScreen() {
   const [showExpModal, setShowExpModal] = useState(false);
   const [selectedExp, setSelectedExp] = useState<Despesa | null>(null);
   const [expForm, setExpForm] = useState({ descricao: '', categoria: 'adm' as Despesa['categoria'], valor: '', mes: new Date().toISOString().slice(0, 7), data: '', status: 'pago' as Despesa['status'], recorrente: false, notas: '' });
+  const [expMeses, setExpMeses] = useState(1);
   const [savingExp, setSavingExp] = useState(false);
   const [darBaixaLoading, setDarBaixaLoading] = useState<number | null>(null);
 
@@ -668,17 +669,25 @@ export default function FinanceiroScreen() {
     setSavingExp(true); setSaveError(null);
     try {
       const { supabase } = await import('@/lib/supabase');
-      const payload = { clinic_id: state.user?.clinicId, descricao: expForm.descricao, categoria: expForm.categoria, valor: Number(expForm.valor), mes: expForm.mes, data: expForm.data || null, status: expForm.status, recorrente: expForm.recorrente, notas: expForm.notas || null };
+      const basePayload = { clinic_id: state.user?.clinicId, descricao: expForm.descricao, categoria: expForm.categoria, valor: Number(expForm.valor), data: expForm.data || null, status: expForm.status, recorrente: expForm.recorrente, notas: expForm.notas || null };
       if (selectedExp) {
-        const { data: upd, error } = await supabase.from('despesas').update(payload).eq('id', selectedExp.id).select().single();
+        const { data: upd, error } = await supabase.from('despesas').update({ ...basePayload, mes: expForm.mes }).eq('id', selectedExp.id).select().single();
         if (error) { setSaveError(error.message); return; }
         if (upd) dispatch({ type: 'UPDATE_EXPENSE', payload: upd });
       } else {
-        const { data: created, error } = await supabase.from('despesas').insert(payload).select().single();
+        // Gera N meses a partir do mês inicial
+        const [baseYear, baseMonth] = expForm.mes.split('-').map(Number);
+        const inserts = Array.from({ length: expMeses }, (_, i) => {
+          const d = new Date(baseYear, baseMonth - 1 + i, 1);
+          const mes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          return { ...basePayload, mes };
+        });
+        const { data: created, error } = await supabase.from('despesas').insert(inserts).select();
         if (error) { setSaveError(error.message); return; }
-        if (created) dispatch({ type: 'ADD_EXPENSE', payload: created });
+        if (created) created.forEach((exp) => dispatch({ type: 'ADD_EXPENSE', payload: exp }));
       }
       setShowExpModal(false);
+      setExpMeses(1);
     } catch (err: unknown) { setSaveError(err instanceof Error ? err.message : 'Erro'); }
     finally { setSavingExp(false); }
   }
@@ -1117,9 +1126,27 @@ export default function FinanceiroScreen() {
                 <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Valor (R$) *</label><input type="number" value={expForm.valor} onChange={(e) => setExpForm(f => ({ ...f, valor: e.target.value }))} required min="0" step="0.01" style={inp} /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Mes ref.</label><input type="month" value={expForm.mes} onChange={(e) => setExpForm(f => ({ ...f, mes: e.target.value }))} required style={inp} /></div>
+                <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Mês inicial *</label><input type="month" value={expForm.mes} onChange={(e) => setExpForm(f => ({ ...f, mes: e.target.value }))} required style={inp} /></div>
                 <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Data pagamento</label><input type="date" value={expForm.data} onChange={(e) => setExpForm(f => ({ ...f, data: e.target.value }))} style={inp} /></div>
               </div>
+              {!selectedExp && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>
+                    Provisionar por quantos meses?
+                    <span style={{ marginLeft: 8, fontWeight: 400, color: 'var(--t3)' }}>({expMeses} {expMeses === 1 ? 'mês' : 'meses'})</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input type="range" min={1} max={24} value={expMeses} onChange={(e) => setExpMeses(Number(e.target.value))} style={{ flex: 1, accentColor: 'var(--p)' }} />
+                    <input type="number" min={1} max={24} value={expMeses} onChange={(e) => setExpMeses(Math.max(1, Math.min(24, Number(e.target.value))))}
+                      style={{ ...inp, width: 60, textAlign: 'center', padding: '8px 6px' }} />
+                  </div>
+                  {expMeses > 1 && (
+                    <div style={{ fontSize: 11, color: 'var(--p)', marginTop: 4, fontWeight: 600 }}>
+                      Serão criadas {expMeses} despesas: {expForm.mes} até {(() => { const [y, m] = expForm.mes.split('-').map(Number); const d = new Date(y, m - 1 + expMeses - 1, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })()}
+                    </div>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Status</label>
                   <select value={expForm.status} onChange={(e) => setExpForm(f => ({ ...f, status: e.target.value as Despesa['status'] }))} style={inp}>

@@ -47,41 +47,113 @@ const PREDEFINED: Atividade[] = [
 
 const CATEGORIAS: Categoria[] = ['Comunicação', 'Cognitivo', 'Social', 'Motor', 'Sensorial', 'Autonomia'];
 
-// ─── Patient selector modal ───────────────────────────────
+// ─── Patient selector modal (2 steps: search → confirm code) ──
 function SelectPacienteModal({ atividade, pacientes, onSelect, onClose }: {
   atividade: Atividade;
-  pacientes: { id: number; name: string; status: string }[];
+  pacientes: { id: number; name: string; status: string; codigo?: string | null }[];
   onSelect: (id: number, nome: string) => void;
   onClose: () => void;
 }) {
+  const [step, setStep] = useState<'select' | 'confirm'>('select');
+  const [searchQ, setSearchQ] = useState('');
+  const [picked, setPicked] = useState<{ id: number; name: string; codigo?: string | null } | null>(null);
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState('');
+
   const ativos = pacientes.filter((p) => p.status === 'ativo');
+  const listFiltered = searchQ.trim()
+    ? ativos.filter((p) => p.name.toLowerCase().includes(searchQ.toLowerCase()))
+    : ativos;
+
+  function handlePick(p: { id: number; name: string; codigo?: string | null }) {
+    setPicked(p);
+    setCodeInput('');
+    setCodeError('');
+    setStep('confirm');
+  }
+
+  function handleConfirm() {
+    if (!picked) return;
+    if (!picked.codigo) { onSelect(picked.id, picked.name); return; }
+    if (codeInput.trim() === picked.codigo) { onSelect(picked.id, picked.name); }
+    else { setCodeError('Código incorreto. Verifique com a família e tente novamente.'); }
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
-      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 380, boxShadow: 'var(--sh-xl)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 400, boxShadow: 'var(--sh-xl)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Selecionar paciente</div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 20 }}>{atividade.nome}</div>
-        {ativos.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
-            Nenhum paciente ativo cadastrado.
-          </div>
+
+        {step === 'select' ? (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Selecionar paciente</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 16 }}>{atividade.nome}</div>
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input autoFocus value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Buscar paciente..."
+                style={{ width: '100%', paddingLeft: 32, paddingRight: 12, height: 38, border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf2)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+            {listFiltered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
+                {ativos.length === 0 ? 'Nenhum paciente ativo cadastrado.' : 'Nenhum paciente encontrado.'}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
+                {listFiltered.map((p) => (
+                  <button key={p.id} onClick={() => handlePick(p)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s', width: '100%' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--p)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bdr)')}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--ps)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: 'var(--p)', flexShrink: 0 }}>
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{p.name}</div>
+                      {p.codigo && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Código: <strong style={{ color: 'var(--p)', fontFamily: 'monospace' }}>{p.codigo}</strong></div>}
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
-            {ativos.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p.id, p.name)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s' }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--p)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bdr)')}
-              >
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--ps)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: 'var(--p)', flexShrink: 0 }}>
-                  {p.name.charAt(0).toUpperCase()}
+          <>
+            <button onClick={() => setStep('select')} style={{ background: 'none', border: 'none', color: 'var(--p)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', padding: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+              ← Voltar
+            </button>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Confirmar identidade</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 20 }}>{atividade.nome}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--ps)', border: '1px solid var(--p)', borderRadius: 14, marginBottom: 20 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                {picked?.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{picked?.name}</div>
+                {picked?.codigo && <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>ID do paciente: <strong style={{ color: 'var(--p)', letterSpacing: '0.1em', fontFamily: 'monospace' }}>{picked.codigo}</strong></div>}
+              </div>
+            </div>
+            {picked?.codigo ? (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 12, lineHeight: 1.5 }}>
+                  Peça à família o código do paciente e digite abaixo para confirmar:
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{p.name}</div>
-              </button>
-            ))}
-          </div>
+                <input autoFocus value={codeInput}
+                  onChange={(e) => { setCodeInput(e.target.value); setCodeError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
+                  placeholder="000000" maxLength={10}
+                  style={{ width: '100%', padding: '12px 16px', border: `1px solid ${codeError ? '#ef4444' : 'var(--bdr)'}`, borderRadius: 12, background: 'var(--sf2)', color: 'var(--t1)', fontSize: 22, fontFamily: 'monospace', textAlign: 'center', letterSpacing: '0.25em', boxSizing: 'border-box', marginBottom: 8, outline: 'none' }} />
+                {codeError && <div style={{ color: '#f87171', fontSize: 12, marginBottom: 12, textAlign: 'center' }}>{codeError}</div>}
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 12, padding: '10px 14px', background: 'var(--sf2)', borderRadius: 10, textAlign: 'center' }}>
+                Paciente sem código cadastrado — acesso liberado automaticamente.
+              </div>
+            )}
+            <button onClick={handleConfirm} className="btn-p" style={{ width: '100%', padding: 14, fontSize: 15, fontWeight: 800 }}>
+              Confirmar e iniciar sessão →
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -89,10 +161,11 @@ function SelectPacienteModal({ atividade, pacientes, onSelect, onClose }: {
 }
 
 // ─── DTT Modal ────────────────────────────────────────────
-function DttModal({ atividade, pacienteNome, onClose }: { atividade: Atividade; pacienteNome: string; onClose: () => void }) {
+function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { atividade: Atividade; pacienteNome: string; pacienteId: number; clinicId: string; onClose: () => void }) {
   const [trials, setTrials] = useState<DttTrial[]>([]);
   const [obs, setObs] = useState('');
   const [finalizado, setFinalizado] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   const acertos  = trials.filter((t) => t.resultado === 'acerto').length;
   const parciais = trials.filter((t) => t.resultado === 'parcial').length;
@@ -105,6 +178,24 @@ function DttModal({ atividade, pacienteNome, onClose }: { atividade: Atividade; 
   }, []);
 
   const cor = CATEGORIA_COLORS[atividade.categoria];
+
+  async function handleFinalizar() {
+    setSalvando(true);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const now = new Date();
+      await supabase.from('sessoes').insert({
+        clinic_id: clinicId,
+        child_id: pacienteId,
+        data: now.toISOString().slice(0, 10),
+        hora: now.toTimeString().slice(0, 5),
+        tipo: `DTT - ${atividade.nome}`,
+        status: 'realizado',
+        notas: JSON.stringify({ acertos, parciais, erros, total, pct, obs: obs || null, categoria: atividade.categoria }),
+      });
+    } catch { /* falha silenciosa */ }
+    finally { setSalvando(false); setFinalizado(true); }
+  }
 
   if (finalizado) {
     return (
@@ -201,8 +292,8 @@ function DttModal({ atividade, pacienteNome, onClose }: { atividade: Atividade; 
         <textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observações desta sessão (opcional)..." rows={2}
           style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 12, background: 'var(--sf2)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
 
-        <button onClick={() => setFinalizado(true)} className="btn-p" style={{ width: '100%', padding: 14, fontSize: 15, fontWeight: 800 }}>
-          ✓ Finalizar Sessão
+        <button onClick={handleFinalizar} disabled={salvando} className="btn-p" style={{ width: '100%', padding: 14, fontSize: 15, fontWeight: 800 }}>
+          {salvando ? 'Salvando...' : '✓ Finalizar Sessão'}
         </button>
       </div>
     </div>
@@ -374,7 +465,7 @@ export default function PeiScreen() {
       {selectingPaciente && (
         <SelectPacienteModal
           atividade={selectingPaciente}
-          pacientes={state.data.children as { id: number; name: string; status: string }[]}
+          pacientes={state.data.children as { id: number; name: string; status: string; codigo?: string | null }[]}
           onSelect={(id, nome) => {
             setExecuting({ atividade: selectingPaciente, pacienteId: id, pacienteNome: nome });
             setSelectingPaciente(null);
@@ -388,6 +479,8 @@ export default function PeiScreen() {
         <DttModal
           atividade={executing.atividade}
           pacienteNome={executing.pacienteNome}
+          pacienteId={executing.pacienteId}
+          clinicId={state.user?.clinicId ?? ''}
           onClose={() => setExecuting(null)}
         />
       )}

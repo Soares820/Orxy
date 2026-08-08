@@ -387,29 +387,65 @@ export default function AvaliacoesScreen() {
             <button className="btn-p" onClick={openNew}>+ Registrar primeira avaliação</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {childEvals.map((a) => {
               const savedScores = a.scores ?? {};
-              const keyCount = Object.keys(savedScores).filter((k) => k !== 'instrumento_nome').length;
               const nomePersonalizado = a.tipo === 'Personalizado' ? (savedScores.instrumento_nome as string) : null;
+              const defs = SCORE_DEFS[a.tipo];
+
+              // Build score summary chips
+              let scoreSummary: React.ReactNode = null;
+              if (a.tipo === 'CARS') {
+                const strScores: Record<string, string> = {};
+                for (const k of Object.keys(savedScores)) strScores[k] = String(savedScores[k] ?? '');
+                const result = carsResult(strScores);
+                if (result) {
+                  scoreSummary = (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 18, fontWeight: 900, color: result.color, lineHeight: 1 }}>{result.total}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: result.color, background: result.color + '18', padding: '3px 10px', borderRadius: 20 }}>{result.nivel}</span>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>CARS (15–60)</span>
+                    </div>
+                  );
+                }
+              } else if (defs) {
+                const filled = defs.filter((d) => savedScores[d.key] != null && savedScores[d.key] !== '');
+                if (filled.length > 0) {
+                  scoreSummary = (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                      {filled.map((d) => (
+                        <span key={d.key} style={{ fontSize: 11, padding: '3px 10px', background: 'var(--ps)', border: '1px solid var(--p)', borderRadius: 20, color: 'var(--t2)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {d.label}: <strong style={{ color: 'var(--p)' }}>{String(savedScores[d.key])}{d.unit ? ` ${d.unit}` : ''}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  );
+                }
+              }
+
               return (
-                <div key={a.id} onClick={() => openEdit(a)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 12, cursor: 'pointer' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--ps)', border: '1px solid var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: 'var(--p)', textAlign: 'center', flexShrink: 0 }}>
-                    {a.tipo}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>
-                      {nomePersonalizado || TIPO_DESC[a.tipo] || a.tipo}
+                <div key={a.id} onClick={() => openEdit(a)}
+                  style={{ padding: '16px 18px', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 14, cursor: 'pointer', transition: 'border-color .15s' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--p)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bdr)')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--ps)', border: '1px solid var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: 'var(--p)', textAlign: 'center', flexShrink: 0 }}>
+                      {a.tipo}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
-                      {formatDate(a.data)}
-                      {keyCount > 0 && ` · ${keyCount} campo${keyCount > 1 ? 's' : ''} preenchido${keyCount > 1 ? 's' : ''}`}
-                      {a.notas && ` · ${a.notas.slice(0, 50)}${a.notas.length > 50 ? '...' : ''}`}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>
+                        {nomePersonalizado || TIPO_DESC[a.tipo] || a.tipo}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
+                        {formatDate(a.data)}
+                        {a.notas && <span style={{ marginLeft: 6 }}>· {a.notas.slice(0, 80)}{a.notas.length > 80 ? '...' : ''}</span>}
+                      </div>
                     </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--t3)', flexShrink: 0 }}>
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--t3)', flexShrink: 0 }}>
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
+                  {scoreSummary}
                 </div>
               );
             })}
