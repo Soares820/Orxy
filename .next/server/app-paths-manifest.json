@@ -1,17 +1,18 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/api/checkout/route": "app/api/checkout/route.js",
-  "/api/reavix/route": "app/api/reavix/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/blog/page": "app/blog/page.js",
-  "/login/page": "app/login/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/api/reavix/route": "app/api/reavix/route.js",
   "/register/page": "app/register/page.js",
+  "/reset-password/page": "app/reset-password/page.js",
   "/wiki/page": "app/wiki/page.js",
-  "/api/blog-cron/route": "app/api/blog-cron/route.js",
-  "/api/email/route": "app/api/email/route.js",
+  "/login/page": "app/login/page.js",
   "/api/webhook/route": "app/api/webhook/route.js",
   "/api/invite/route": "app/api/invite/route.js",
+  "/api/email/route": "app/api/email/route.js",
+  "/api/blog-cron/route": "app/api/blog-cron/route.js",
   "/page": "app/page.js",
-  "/privacidade/page": "app/privacidade/page.js",
-  "/termos/page": "app/termos/page.js"
+  "/termos/page": "app/termos/page.js",
+  "/privacidade/page": "app/privacidade/page.js"
 }

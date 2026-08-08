@@ -18,18 +18,19 @@ Formate respostas longas com paragraphos claros. Para listas de itens, use marca
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify Supabase auth token
+    // Require valid Supabase auth token
     const authHeader = req.headers.get('authorization');
-    if (authHeader) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-      if (supabaseUrl && supabaseKey) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user } } = await supabase.auth.getUser(token);
-        if (!user) {
-          return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-        }
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const token = authHeader.slice(7);
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (!user) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
       }
     }
 

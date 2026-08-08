@@ -7,7 +7,21 @@ const PRICES: Record<string, string> = {
   enterprise:   'price_1TqKzy5rqO1GLGXfazg0wfYa',
 };
 
+async function verifyAuth(req: NextRequest) {
+  const auth = req.headers.get('authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const { createServiceClient } = await import('@/lib/supabase');
+  try {
+    const sb = createServiceClient();
+    const { data: { user } } = await sb.auth.getUser(auth.slice(7));
+    return user ?? null;
+  } catch { return null; }
+}
+
 export async function POST(req: NextRequest) {
+  const user = await verifyAuth(req);
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return NextResponse.json({ error: 'STRIPE_SECRET_KEY not configured' }, { status: 500 });
 

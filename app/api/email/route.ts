@@ -6,7 +6,30 @@ function escapeHtml(s: unknown): string {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 }
 
+async function verifyInternal(req: NextRequest): Promise<boolean> {
+  // Aceita chamadas internas do próprio servidor (webhook, etc.) via secret
+  const internalSecret = process.env.INTERNAL_API_SECRET;
+  if (internalSecret) {
+    const h = req.headers.get('x-internal-secret');
+    if (h === internalSecret) return true;
+  }
+  // Aceita usuários autenticados via Supabase JWT
+  const auth = req.headers.get('authorization');
+  if (auth?.startsWith('Bearer ')) {
+    const { createServiceClient } = await import('@/lib/supabase');
+    try {
+      const sb = createServiceClient();
+      const { data: { user } } = await sb.auth.getUser(auth.slice(7));
+      if (user) return true;
+    } catch { /* fall through */ }
+  }
+  return false;
+}
+
 export async function POST(req: NextRequest) {
+  const authorized = await verifyInternal(req);
+  if (!authorized) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY) return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 });
 

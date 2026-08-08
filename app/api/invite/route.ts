@@ -34,6 +34,19 @@ export async function POST(req: NextRequest) {
   if (role && !VALID_ROLES.includes(String(role))) return NextResponse.json({ error: 'role inválido' }, { status: 400 });
 
   const supabase = createServiceClient();
+
+  // Verifica que o usuário autenticado pertence à clinic_id informada
+  const { data: userRecord } = await supabase
+    .from('users')
+    .select('clinic_id, nivel')
+    .eq('auth_id', user.id)
+    .single();
+  if (!userRecord || userRecord.clinic_id !== clinic_id) {
+    return NextResponse.json({ error: 'Sem permissão para convidar nesta clínica' }, { status: 403 });
+  }
+  if (userRecord.nivel !== 'admin') {
+    return NextResponse.json({ error: 'Apenas administradores podem convidar membros' }, { status: 403 });
+  }
   const appUrl = process.env.APP_URL ?? 'https://to-plataforma.vercel.app';
 
   try {

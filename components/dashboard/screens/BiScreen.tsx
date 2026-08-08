@@ -203,8 +203,11 @@ function BiEvolucao() {
               )}
 
               {goalStats.total === 0 && (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
-                  Nenhuma meta cadastrada para este paciente
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ color: 'var(--t3)', fontSize: 13, marginBottom: 8 }}>Nenhuma meta cadastrada para este paciente</div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', padding: '8px 12px', background: 'var(--sf2)', borderRadius: 8, display: 'inline-block' }}>
+                    Crie metas em <strong style={{ color: 'var(--p)' }}>Atividades (PEI)</strong> para acompanhar o progresso aqui
+                  </div>
                 </div>
               )}
             </Card>

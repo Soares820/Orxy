@@ -49,9 +49,13 @@ export async function POST(req: NextRequest) {
 
           const email = session.customer_details?.email;
           if (email && process.env.RESEND_API_KEY) {
+            const internalHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (process.env.INTERNAL_API_SECRET) {
+              internalHeaders['x-internal-secret'] = process.env.INTERNAL_API_SECRET;
+            }
             fetch(`${appUrl}/api/email`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: internalHeaders,
               body: JSON.stringify({ type: 'payment_confirmed', to: email, plano }),
             }).catch(() => {});
           }

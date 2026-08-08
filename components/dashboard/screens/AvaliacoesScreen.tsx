@@ -5,18 +5,200 @@ import { useApp } from '@/contexts/AppContext';
 import { formatDate } from '@/lib/utils';
 import type { Avaliacao } from '@/lib/types';
 
-const TIPOS = ['PEDI', 'PS', 'SPM', 'ABLLS', 'VBMAPP', 'CARS', 'Vineland', 'Outro'] as const;
+type TipoAvaliacao = Avaliacao['tipo'];
 
-const TIPO_DESC: Record<string, string> = {
+const TIPOS: TipoAvaliacao[] = ['PEDI', 'PS', 'SPM', 'ABLLS', 'VBMAPP', 'CARS', 'Vineland', 'Personalizado', 'Outro'];
+
+const TIPO_DESC: Record<TipoAvaliacao, string> = {
   PEDI: 'Inventário de Avaliação Pediátrica de Incapacidade',
-  PS: 'Perfil Sensorial',
+  PS: 'Perfil Sensorial 2 (Dunn)',
   SPM: 'Medida de Processamento Sensorial',
   ABLLS: 'Assessment of Basic Language and Learning Skills',
-  VBMAPP: 'Verbal Behavior Milestones Assessment',
-  CARS: 'Childhood Autism Rating Scale',
-  Vineland: 'Escala de Comportamento Adaptativo Vineland',
-  Outro: 'Outra avaliação',
+  VBMAPP: 'Verbal Behavior Milestones Assessment and Placement Program',
+  CARS: 'Childhood Autism Rating Scale — 15 itens (1–4)',
+  Vineland: 'Escala de Comportamento Adaptativo Vineland II',
+  Personalizado: 'Instrumento personalizado ou criado pela terapeuta',
+  Outro: 'Outro instrumento clínico',
 };
+
+interface ScoreDef {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  unit?: string;
+  step?: number;
+}
+
+const SCORE_DEFS: Partial<Record<TipoAvaliacao, ScoreDef[]>> = {
+  PEDI: [
+    { key: 'autocuidado', label: 'Autocuidado', min: 0, max: 100, unit: 'pts' },
+    { key: 'mobilidade', label: 'Mobilidade', min: 0, max: 100, unit: 'pts' },
+    { key: 'funcao_social', label: 'Função Social', min: 0, max: 100, unit: 'pts' },
+    { key: 'total', label: 'Escore Total', min: 0, max: 100, unit: 'pts' },
+  ],
+  PS: [
+    { key: 'registro', label: 'Registro Baixo', min: 1, max: 125 },
+    { key: 'busca', label: 'Busca de Sensação', min: 1, max: 85 },
+    { key: 'sensibilidade', label: 'Sensibilidade Sensorial', min: 1, max: 100 },
+    { key: 'evitacao', label: 'Evitação Sensorial', min: 1, max: 130 },
+    { key: 'total', label: 'Escore Total', min: 4, max: 440 },
+  ],
+  SPM: [
+    { key: 'social', label: 'Participação Social', min: 5, max: 35 },
+    { key: 'visao', label: 'Visão', min: 5, max: 35 },
+    { key: 'audicao', label: 'Audição', min: 5, max: 30 },
+    { key: 'tato', label: 'Tato', min: 5, max: 35 },
+    { key: 'corpo', label: 'Consciência Corporal', min: 5, max: 35 },
+    { key: 'equilibrio', label: 'Equilíbrio e Movimento', min: 5, max: 30 },
+    { key: 'planejamento', label: 'Planejamento e Ideias', min: 5, max: 35 },
+  ],
+  ABLLS: [
+    { key: 'ling_receptiva', label: 'Linguagem Receptiva', min: 0, max: 25 },
+    { key: 'ling_expressiva', label: 'Linguagem Expressiva', min: 0, max: 40 },
+    { key: 'interacao', label: 'Interação Social', min: 0, max: 24 },
+    { key: 'imitacao', label: 'Imitação', min: 0, max: 30 },
+    { key: 'visuais', label: 'Habilidades Visuais', min: 0, max: 25 },
+    { key: 'autocuidado', label: 'Autocuidado', min: 0, max: 25 },
+  ],
+  VBMAPP: [
+    { key: 'mando', label: 'Mando', min: 0, max: 50 },
+    { key: 'tato', label: 'Tato', min: 0, max: 50 },
+    { key: 'ouvinte', label: 'Ouvinte (Listener)', min: 0, max: 50 },
+    { key: 'visuais', label: 'Habilidades Visuais', min: 0, max: 50 },
+    { key: 'imitacao', label: 'Imitação', min: 0, max: 30 },
+    { key: 'ecoico', label: 'Ecóico', min: 0, max: 50 },
+    { key: 'motor', label: 'Motor Verbal', min: 0, max: 30 },
+  ],
+  CARS: [
+    { key: 'relacao_pessoas', label: 'Relação com Pessoas', min: 1, max: 4, step: 0.5 },
+    { key: 'imitacao', label: 'Imitação', min: 1, max: 4, step: 0.5 },
+    { key: 'resposta_emocional', label: 'Resposta Emocional', min: 1, max: 4, step: 0.5 },
+    { key: 'uso_corpo', label: 'Uso do Corpo', min: 1, max: 4, step: 0.5 },
+    { key: 'uso_objetos', label: 'Uso de Objetos', min: 1, max: 4, step: 0.5 },
+    { key: 'adaptacao_mudancas', label: 'Adaptação a Mudanças', min: 1, max: 4, step: 0.5 },
+    { key: 'resposta_visual', label: 'Resposta Visual', min: 1, max: 4, step: 0.5 },
+    { key: 'resposta_auditiva', label: 'Resposta Auditiva', min: 1, max: 4, step: 0.5 },
+    { key: 'olfato_paladar_tato', label: 'Uso de Olfato / Paladar / Tato', min: 1, max: 4, step: 0.5 },
+    { key: 'medo_ansiedade', label: 'Medo e Ansiedade', min: 1, max: 4, step: 0.5 },
+    { key: 'comunicacao_verbal', label: 'Comunicação Verbal', min: 1, max: 4, step: 0.5 },
+    { key: 'comunicacao_nverbal', label: 'Comunicação Não-Verbal', min: 1, max: 4, step: 0.5 },
+    { key: 'nivel_atividade', label: 'Nível de Atividade', min: 1, max: 4, step: 0.5 },
+    { key: 'consist_intelectual', label: 'Nível/Consistência Intelectual', min: 1, max: 4, step: 0.5 },
+    { key: 'impressao_geral', label: 'Impressão Geral do Avaliador', min: 1, max: 4, step: 0.5 },
+  ],
+  Vineland: [
+    { key: 'comunicacao', label: 'Comunicação', min: 20, max: 160, unit: 'SS' },
+    { key: 'vida_diaria', label: 'Habilidades de Vida Diária', min: 20, max: 160, unit: 'SS' },
+    { key: 'socializacao', label: 'Socialização', min: 20, max: 160, unit: 'SS' },
+    { key: 'motor', label: 'Habilidades Motoras', min: 20, max: 130, unit: 'SS' },
+  ],
+};
+
+function carsResult(scores: Record<string, string>): { total: number; nivel: string; color: string } | null {
+  const defs = SCORE_DEFS.CARS!;
+  const vals = defs.map((d) => parseFloat(scores[d.key] || '0'));
+  if (vals.some((v) => isNaN(v) || v === 0)) return null;
+  const total = Math.round(vals.reduce((a, b) => a + b, 0) * 10) / 10;
+  let nivel = '';
+  let color = '';
+  if (total < 30) { nivel = 'Sem indicativos de TEA'; color = '#10b981'; }
+  else if (total <= 36) { nivel = 'TEA leve a moderado'; color = '#f59e0b'; }
+  else { nivel = 'TEA severo'; color = '#ef4444'; }
+  return { total, nivel, color };
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '9px 11px',
+  border: '1px solid var(--bdr)',
+  borderRadius: 8,
+  background: 'var(--sf)',
+  color: 'var(--t1)',
+  fontSize: 14,
+  fontFamily: 'inherit',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  color: 'var(--t2)',
+  display: 'block',
+  marginBottom: 5,
+};
+
+interface ScoreFormProps {
+  tipo: TipoAvaliacao;
+  scores: Record<string, string>;
+  onChange: (key: string, val: string) => void;
+}
+
+function ScoreForm({ tipo, scores, onChange }: ScoreFormProps) {
+  const defs = SCORE_DEFS[tipo];
+  if (!defs) return null;
+
+  if (tipo === 'CARS') {
+    const result = carsResult(scores);
+    return (
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 10 }}>
+          15 Itens — escala 1 a 4 (1=normal, 4=severamente atípico; valores 1.5, 2.5, 3.5 permitidos)
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' }}>
+          {defs.map((d, i) => (
+            <div key={d.key}>
+              <label style={{ ...labelStyle, fontSize: 11 }}>{i + 1}. {d.label}</label>
+              <input
+                type="number"
+                min={d.min}
+                max={d.max}
+                step={d.step ?? 0.5}
+                value={scores[d.key] ?? ''}
+                onChange={(e) => onChange(d.key, e.target.value)}
+                placeholder="1–4"
+                style={{ ...inputStyle, fontSize: 13, padding: '7px 10px' }}
+              />
+            </div>
+          ))}
+        </div>
+        {result && (
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--sf2)', border: `1px solid ${result.color}33`, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: result.color, lineHeight: 1 }}>{result.total}</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: result.color }}>{result.nivel}</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Pontuação total CARS (15–60)</div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: defs.length > 4 ? '1fr 1fr' : '1fr 1fr', gap: '10px 12px' }}>
+      {defs.map((d) => (
+        <div key={d.key}>
+          <label style={labelStyle}>
+            {d.label}
+            {d.unit && <span style={{ fontWeight: 400, color: 'var(--t3)', marginLeft: 4 }}>({d.unit})</span>}
+            <span style={{ fontWeight: 400, color: 'var(--t3)', marginLeft: 4 }}>{d.min}–{d.max}</span>
+          </label>
+          <input
+            type="number"
+            min={d.min}
+            max={d.max}
+            step={d.step ?? 1}
+            value={scores[d.key] ?? ''}
+            onChange={(e) => onChange(d.key, e.target.value)}
+            placeholder={String(d.min)}
+            style={inputStyle}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AvaliacoesScreen() {
   const { state, dispatch } = useApp();
@@ -27,16 +209,15 @@ export default function AvaliacoesScreen() {
   const [selectedAval, setSelectedAval] = useState<Avaliacao | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    tipo: 'PEDI' as typeof TIPOS[number],
+    tipo: 'PEDI' as TipoAvaliacao,
     data: new Date().toISOString().slice(0, 10),
     notas: '',
-    scores: '{}',
+    instrumento_nome: '',
+    scores: {} as Record<string, string>,
   });
 
   const childEvals = useMemo(() =>
-    selectedChildId
-      ? data.evaluations.filter((e) => e.child_id === selectedChildId)
-      : [],
+    selectedChildId ? data.evaluations.filter((e) => e.child_id === selectedChildId) : [],
     [data.evaluations, selectedChildId]
   );
 
@@ -45,9 +226,27 @@ export default function AvaliacoesScreen() {
     [data.children, selectedChildId]
   );
 
+  function buildEmptyScores(tipo: TipoAvaliacao): Record<string, string> {
+    const defs = SCORE_DEFS[tipo];
+    if (!defs) return {};
+    return Object.fromEntries(defs.map((d) => [d.key, '']));
+  }
+
+  function scoresFromSaved(tipo: TipoAvaliacao, saved: Record<string, unknown>): Record<string, string> {
+    const defs = SCORE_DEFS[tipo];
+    if (!defs) return {};
+    return Object.fromEntries(defs.map((d) => [d.key, saved[d.key] != null ? String(saved[d.key]) : '']));
+  }
+
   function openNew() {
     setSelectedAval(null);
-    setForm({ tipo: 'PEDI', data: new Date().toISOString().slice(0, 10), notas: '', scores: '{}' });
+    setForm({
+      tipo: 'PEDI',
+      data: new Date().toISOString().slice(0, 10),
+      notas: '',
+      instrumento_nome: '',
+      scores: buildEmptyScores('PEDI'),
+    });
     setShowModal(true);
   }
 
@@ -57,9 +256,18 @@ export default function AvaliacoesScreen() {
       tipo: a.tipo,
       data: a.data,
       notas: a.notas ?? '',
-      scores: JSON.stringify(a.scores ?? {}, null, 2),
+      instrumento_nome: (a.scores?.instrumento_nome as string) ?? '',
+      scores: scoresFromSaved(a.tipo, a.scores ?? {}),
     });
     setShowModal(true);
+  }
+
+  function handleTipoChange(tipo: TipoAvaliacao) {
+    setForm((f) => ({ ...f, tipo, scores: buildEmptyScores(tipo) }));
+  }
+
+  function handleScoreChange(key: string, val: string) {
+    setForm((f) => ({ ...f, scores: { ...f.scores, [key]: val } }));
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -68,8 +276,19 @@ export default function AvaliacoesScreen() {
     setSaving(true);
     try {
       const { supabase } = await import('@/lib/supabase');
-      let scores: Record<string, unknown> = {};
-      try { scores = JSON.parse(form.scores); } catch { scores = {}; }
+
+      // Convert string scores to numbers for storage
+      const defs = SCORE_DEFS[form.tipo];
+      const numericScores: Record<string, unknown> = {};
+      if (defs) {
+        for (const d of defs) {
+          const v = parseFloat(form.scores[d.key] || '');
+          if (!isNaN(v)) numericScores[d.key] = v;
+        }
+      }
+      if (form.tipo === 'Personalizado' && form.instrumento_nome) {
+        numericScores.instrumento_nome = form.instrumento_nome;
+      }
 
       const payload = {
         clinic_id: state.user?.clinicId,
@@ -77,17 +296,17 @@ export default function AvaliacoesScreen() {
         tipo: form.tipo,
         data: form.data,
         notas: form.notas || null,
-        scores,
+        scores: numericScores,
       };
 
       if (selectedAval) {
-        const { data: upd } = await supabase.from('avaliacoes').update(payload).eq('id', selectedAval.id).select().single();
-        if (upd) {
+        const { data: upd, error } = await supabase.from('avaliacoes').update(payload).eq('id', selectedAval.id).select().single();
+        if (!error && upd) {
           dispatch({ type: 'SET_DATA', payload: { evaluations: data.evaluations.map((a) => a.id === upd.id ? upd : a) } });
         }
       } else {
-        const { data: created } = await supabase.from('avaliacoes').insert(payload).select().single();
-        if (created) {
+        const { data: created, error } = await supabase.from('avaliacoes').insert(payload).select().single();
+        if (!error && created) {
           dispatch({ type: 'SET_DATA', payload: { evaluations: [created, ...data.evaluations] } });
         }
       }
@@ -106,16 +325,18 @@ export default function AvaliacoesScreen() {
     return map;
   }, [childEvals]);
 
+  const hasDefs = SCORE_DEFS[form.tipo] !== undefined;
+  const isWide = form.tipo === 'CARS' || (SCORE_DEFS[form.tipo]?.length ?? 0) >= 6;
+
   return (
     <div className="view show" id="v-avaliacoes">
       <div className="page-body">
         <div className="page-hero">
           <div className="ph-pre"><span></span>Avaliações</div>
           <h1 className="ph-title">Avaliações</h1>
-          <div className="ph-sub">PEDI, PS, SPM, ABLLS, VBMAPP e outras escalas clínicas</div>
+          <div className="ph-sub">PEDI, PS, SPM, ABLLS, VBMAPP, CARS, Vineland e instrumentos personalizados</div>
         </div>
 
-        {/* Child selector + action */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
           <select
             value={selectedChildId ?? ''}
@@ -133,7 +354,6 @@ export default function AvaliacoesScreen() {
           <button className="btn-p" onClick={openNew} style={{ marginLeft: 'auto' }}>+ Nova avaliação</button>
         </div>
 
-        {/* Summary cards per type */}
         {TIPOS.filter((t) => evalsByTipo[t]?.length).length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 10, marginBottom: 24 }}>
             {TIPOS.filter((t) => evalsByTipo[t]?.length).map((tipo) => (
@@ -141,7 +361,7 @@ export default function AvaliacoesScreen() {
                 <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--p)' }}>{evalsByTipo[tipo].length}</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginTop: 2 }}>{tipo}</div>
                 <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2 }}>
-                  {formatDate(evalsByTipo[tipo][0].data)}
+                  Última: {formatDate(evalsByTipo[tipo][0].data)}
                 </div>
               </div>
             ))}
@@ -152,66 +372,135 @@ export default function AvaliacoesScreen() {
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--t3)' }}>
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--bdr)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>Nenhuma avaliação registrada</div>
-            <div style={{ fontSize: 13, marginBottom: 24 }}>Registre a primeira avaliação clínica deste paciente</div>
-            <button className="btn-p" onClick={openNew}>+ Nova avaliação</button>
+            <div style={{ fontSize: 13, marginBottom: 24 }}>Use PEDI, SPM, CARS, VBMAPP ou seu instrumento personalizado</div>
+            <button className="btn-p" onClick={openNew}>+ Registrar primeira avaliação</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {childEvals.map((a) => (
-              <div key={a.id} onClick={() => openEdit(a)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 12, cursor: 'pointer' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--ps)', border: '1px solid var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: 'var(--p)', textAlign: 'center', flexShrink: 0 }}>
-                  {a.tipo}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>{TIPO_DESC[a.tipo] ?? a.tipo}</div>
-                  <div style={{ fontSize: 12, color: 'var(--t3)' }}>
-                    {formatDate(a.data)}
-                    {a.notas && ` · ${a.notas.slice(0, 60)}${a.notas.length > 60 ? '...' : ''}`}
+            {childEvals.map((a) => {
+              const savedScores = a.scores ?? {};
+              const keyCount = Object.keys(savedScores).filter((k) => k !== 'instrumento_nome').length;
+              const nomePersonalizado = a.tipo === 'Personalizado' ? (savedScores.instrumento_nome as string) : null;
+              return (
+                <div key={a.id} onClick={() => openEdit(a)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 12, cursor: 'pointer' }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--ps)', border: '1px solid var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: 'var(--p)', textAlign: 'center', flexShrink: 0 }}>
+                    {a.tipo}
                   </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>
+                      {nomePersonalizado || TIPO_DESC[a.tipo] || a.tipo}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
+                      {formatDate(a.data)}
+                      {keyCount > 0 && ` · ${keyCount} campo${keyCount > 1 ? 's' : ''} preenchido${keyCount > 1 ? 's' : ''}`}
+                      {a.notas && ` · ${a.notas.slice(0, 50)}${a.notas.length > 50 ? '...' : ''}`}
+                    </div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--t3)', flexShrink: 0 }}>
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--t3)', flexShrink: 0 }}>
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setShowModal(false)}>
-          <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 500 }} onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 800, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: isWide ? 640 : 520 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selectedAval ? 'Editar avaliação' : 'Nova avaliação'}</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
+              <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>
+                {selectedAval ? 'Editar avaliação' : 'Nova avaliação'}
+              </h2>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
             </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Instrumento + Data */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Instrumento *</label>
-                  <select value={form.tipo} onChange={(e) => setForm(f => ({ ...f, tipo: e.target.value as typeof TIPOS[number] }))} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit' }}>
+                  <label style={labelStyle}>Instrumento *</label>
+                  <select
+                    value={form.tipo}
+                    onChange={(e) => handleTipoChange(e.target.value as TipoAvaliacao)}
+                    style={{ ...inputStyle }}
+                  >
                     {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Data *</label>
-                  <input type="date" value={form.data} onChange={(e) => setForm(f => ({ ...f, data: e.target.value }))} required style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  <label style={labelStyle}>Data *</label>
+                  <input
+                    type="date"
+                    value={form.data}
+                    onChange={(e) => setForm(f => ({ ...f, data: e.target.value }))}
+                    required
+                    style={{ ...inputStyle }}
+                  />
                 </div>
               </div>
-              <div style={{ padding: '10px 12px', background: 'var(--sf2)', borderRadius: 10, fontSize: 12, color: 'var(--t3)' }}>
+
+              {/* Descrição do instrumento */}
+              <div style={{ padding: '8px 12px', background: 'var(--sf2)', borderRadius: 8, fontSize: 12, color: 'var(--t3)', lineHeight: 1.4 }}>
                 {TIPO_DESC[form.tipo]}
               </div>
+
+              {/* Nome personalizado */}
+              {form.tipo === 'Personalizado' && (
+                <div>
+                  <label style={labelStyle}>Nome do instrumento *</label>
+                  <input
+                    type="text"
+                    value={form.instrumento_nome}
+                    onChange={(e) => setForm(f => ({ ...f, instrumento_nome: e.target.value }))}
+                    placeholder="Ex: Escala Própria de Independência, Protocolo de Regulação..."
+                    required
+                    style={{ ...inputStyle }}
+                  />
+                </div>
+              )}
+
+              {/* Campos estruturados por instrumento */}
+              {hasDefs && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    Escores
+                  </div>
+                  <ScoreForm tipo={form.tipo} scores={form.scores} onChange={handleScoreChange} />
+                </div>
+              )}
+
+              {/* Observações */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Observações / Conclusões</label>
-                <textarea rows={3} value={form.notas} onChange={(e) => setForm(f => ({ ...f, notas: e.target.value }))} placeholder="Síntese dos resultados, recomendações..." style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+                <label style={labelStyle}>Observações / Conclusões</label>
+                <textarea
+                  rows={3}
+                  value={form.notas}
+                  onChange={(e) => setForm(f => ({ ...f, notas: e.target.value }))}
+                  placeholder="Síntese dos resultados, perfil clínico, recomendações terapêuticas..."
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
               </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Escores (JSON)</label>
-                <textarea rows={4} value={form.scores} onChange={(e) => setForm(f => ({ ...f, scores: e.target.value }))} placeholder={'{\n  "total": 95,\n  "area_motora": 85\n}'} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 13, fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
+
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>{saving ? 'Salvando...' : selectedAval ? 'Salvar' : 'Registrar'}</button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>
+                  {saving ? 'Salvando...' : selectedAval ? 'Salvar alterações' : 'Registrar avaliação'}
+                </button>
               </div>
             </form>
           </div>

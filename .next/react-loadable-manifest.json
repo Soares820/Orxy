@@ -19,10 +19,6 @@
     "id": 2141,
     "files": []
   },
-  "components\\dashboard\\screens\\PeiScreen.tsx -> @/lib/supabase": {
-    "id": 2141,
-    "files": []
-  },
   "components\\dashboard\\screens\\ReavixScreen.tsx -> @/lib/supabase": {
     "id": 2141,
     "files": []
