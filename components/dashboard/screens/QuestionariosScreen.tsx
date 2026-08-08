@@ -280,6 +280,7 @@ export default function QuestionariosScreen() {
   const clinicId = state.user?.clinicId ?? '';
   const instr = INSTRUMENTOS[instrKey];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (pac && clinicId) loadHistorico(); }, [selectedChildId, clinicId]);
 
   async function loadHistorico() {
