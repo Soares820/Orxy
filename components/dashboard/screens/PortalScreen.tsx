@@ -147,7 +147,8 @@ export default function PortalScreen({ onNav }: Props) {
           <button
             key={tile.label}
             className={`dash-tile ${tile.color}`}
-            onClick={() => onNav?.(tile.key)}
+            onClick={() => { if (!isClinicView) onNav?.(tile.key); }}
+            style={isClinicView ? { cursor: 'default', opacity: 0.85 } : undefined}
           >
             <div className="dt-ico">{tile.icon}</div>
             <div className="dt-body">
