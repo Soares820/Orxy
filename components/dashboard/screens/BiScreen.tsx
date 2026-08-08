@@ -150,7 +150,7 @@ function BiEvolucao() {
           {/* Campo de busca com dropdown */}
           <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: 400 }}>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15, opacity: .5, pointerEvents: 'none' }}>🔍</span>
+              <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: .4 }} width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               <input
                 type="text"
                 placeholder="Digite o nome do paciente..."
@@ -182,7 +182,7 @@ function BiEvolucao() {
                         <div style={{ fontWeight: 700, fontSize: 14, color: sel ? 'var(--p)' : 'var(--t1)' }}>{c.name}</div>
                         <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{c.status === 'ativo' ? 'Em terapia' : c.status}</div>
                       </div>
-                      {sel && <div style={{ fontSize: 16, color: 'var(--p)' }}>✓</div>}
+                      {sel && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--p)', flexShrink: 0 }} />}
                     </div>
                   );
                 })}
@@ -218,7 +218,7 @@ function BiEvolucao() {
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>Período de análise:</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inp, width: 145 }} />
-              <span style={{ color: 'var(--t3)', fontSize: 13 }}>→</span>
+              <span style={{ color: 'var(--t3)', fontSize: 12, fontWeight: 600 }}>até</span>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...inp, width: 145 }} />
             </div>
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
@@ -345,7 +345,7 @@ function BiEvolucao() {
                           <div style={{ display: 'flex', gap: 6 }}>
                             {act.execs.length > 1 && (
                               <span style={{ fontSize: 11, fontWeight: 700, color: trend > 0 ? '#10b981' : trend < 0 ? '#ef4444' : 'var(--t3)', background: trend > 0 ? '#10b98120' : trend < 0 ? '#ef444420' : 'var(--sf2)', border: `1px solid ${trend > 0 ? '#10b98140' : trend < 0 ? '#ef444440' : 'var(--bdr)'}`, borderRadius: 6, padding: '2px 7px' }}>
-                                {trend > 0 ? `▲ +${trend}%` : trend < 0 ? `▼ ${trend}%` : '→ 0%'}
+                                {trend > 0 ? `+${trend}%` : trend < 0 ? `${trend}%` : `0%`}
                               </span>
                             )}
                             <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 6, padding: '2px 7px' }}>{act.execs.length}x</span>
@@ -368,9 +368,9 @@ function BiEvolucao() {
                               {new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                             </div>
                             <div style={{ flex: 1, display: 'flex', gap: 8 }}>
-                              <span style={{ color: '#10b981', fontWeight: 700 }}>✓{ex.acertos}</span>
-                              {ex.parciais > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}>◑{ex.parciais}</span>}
-                              <span style={{ color: '#ef4444', fontWeight: 700 }}>✗{ex.erros}</span>
+                              <span style={{ color: '#10b981', fontWeight: 700 }}>{ex.acertos} acertos</span>
+                              {ex.parciais > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}>{ex.parciais} parciais</span>}
+                              <span style={{ color: '#ef4444', fontWeight: 700 }}>{ex.erros} erros</span>
                               <span style={{ color: 'var(--t3)' }}>/{ex.total}</span>
                             </div>
                             <div style={{ fontWeight: 900, fontSize: 13, color: pctColor(ex.pct), flexShrink: 0, minWidth: 36, textAlign: 'right' }}>{ex.pct}%</div>
@@ -391,8 +391,7 @@ function BiEvolucao() {
 
           {dttByActivity.length === 0 && (
             <div style={{ background: 'var(--sf)', border: '1px dashed var(--bdr)', borderRadius: 'var(--r)', padding: '32px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>🎯</div>
-              <div style={{ fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>Nenhuma atividade DTT no período</div>
+              <div style={{ fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>Nenhuma atividade DTT registrada no período</div>
               <div style={{ fontSize: 12, color: 'var(--t3)' }}>Execute atividades em <strong style={{ color: 'var(--p)' }}>Atividades (PEI)</strong> para ver a evolução aqui</div>
             </div>
           )}

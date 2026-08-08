@@ -151,7 +151,7 @@ function SelectPacienteModal({ atividade, pacientes, onSelect, onClose }: {
               </div>
             )}
             <button onClick={handleConfirm} className="btn-p" style={{ width: '100%', padding: 14, fontSize: 15, fontWeight: 800 }}>
-              Confirmar e iniciar sessão →
+              Confirmar e iniciar sessão
             </button>
           </>
         )}
@@ -201,8 +201,10 @@ function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { 
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
         <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 36, width: '100%', maxWidth: 380, textAlign: 'center', boxShadow: 'var(--sh-xl)' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1)', marginBottom: 8 }}>Sessão finalizada!</div>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#10b98120', border: '2px solid #10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1)', marginBottom: 8 }}>Sessão finalizada</div>
           <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 24 }}>{atividade.nome}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 24 }}>
             {[['Acertos', acertos, '#10b981'], ['Parciais', parciais, '#f59e0b'], ['Erros', erros, '#ef4444']].map(([l, v, c]) => (
@@ -246,16 +248,16 @@ function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { 
 
         {/* Action buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <button onClick={() => addTrial('acerto')} style={{ padding: '18px 8px', borderRadius: 14, border: 'none', background: '#10b981', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'opacity .1s' }}>
-            <span style={{ fontSize: 22 }}>✓</span>
+          <button onClick={() => addTrial('acerto')} style={{ padding: '18px 8px', borderRadius: 14, border: 'none', background: '#10b981', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, transition: 'opacity .1s' }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polyline points="18 5 9 16 4 11" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Acerto</span>
           </button>
-          <button onClick={() => addTrial('parcial')} style={{ padding: '18px 8px', borderRadius: 14, border: 'none', background: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'opacity .1s' }}>
-            <span style={{ fontSize: 22 }}>◑</span>
+          <button onClick={() => addTrial('parcial')} style={{ padding: '18px 8px', borderRadius: 14, border: 'none', background: '#f59e0b', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, transition: 'opacity .1s' }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="#fff" strokeWidth="2"/><line x1="11" y1="3" x2="11" y2="19" stroke="#fff" strokeWidth="2"/></svg>
             <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Parcial</span>
           </button>
-          <button onClick={() => addTrial('erro')} style={{ padding: '18px 8px', borderRadius: 14, border: 'none', background: '#ef4444', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'opacity .1s' }}>
-            <span style={{ fontSize: 22 }}>✕</span>
+          <button onClick={() => addTrial('erro')} style={{ padding: '18px 8px', borderRadius: 14, border: 'none', background: '#ef4444', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, transition: 'opacity .1s' }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><line x1="5" y1="5" x2="17" y2="17" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/><line x1="17" y1="5" x2="5" y2="17" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/></svg>
             <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Erro</span>
           </button>
         </div>
@@ -284,7 +286,7 @@ function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { 
         {/* Undo last trial */}
         {total > 0 && (
           <button onClick={() => setTrials((t) => t.slice(0, -1))} style={{ width: '100%', padding: '8px', marginBottom: 10, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t3)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-            ↩ Desfazer última tentativa
+            Desfazer última tentativa
           </button>
         )}
 
@@ -293,7 +295,7 @@ function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { 
           style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 12, background: 'var(--sf2)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
 
         <button onClick={handleFinalizar} disabled={salvando} className="btn-p" style={{ width: '100%', padding: 14, fontSize: 15, fontWeight: 800 }}>
-          {salvando ? 'Salvando...' : '✓ Finalizar Sessão'}
+          {salvando ? 'Salvando...' : 'Finalizar Sessão'}
         </button>
       </div>
     </div>
@@ -441,7 +443,6 @@ export default function PeiScreen() {
         {/* Activity grid */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--t3)' }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>🎯</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>Nenhuma atividade encontrada</div>
             <button className="btn-p" onClick={() => { setEditingCustom(null); setNewForm({ nome: '', descricao: '', categoria: catFilter === 'Todas' ? 'Comunicação' : catFilter as Categoria }); setShowNewModal(true); }} style={{ marginTop: 8 }}>
               + Criar nova atividade

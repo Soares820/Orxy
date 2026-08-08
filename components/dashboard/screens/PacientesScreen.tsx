@@ -306,7 +306,7 @@ export default function PacientesScreen() {
                       disabled={inviting}
                       style={{ padding: '10px 14px', border: '1px solid var(--p)', borderRadius: 10, background: 'var(--ps)', color: 'var(--p)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
                     >
-                      {inviting ? 'Enviando...' : '📧 Enviar acesso'}
+                      {inviting ? 'Enviando...' : 'Enviar acesso'}
                     </button>
                   )}
                 </div>
