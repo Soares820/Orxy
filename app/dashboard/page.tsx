@@ -126,17 +126,18 @@ function AppShell() {
   const { state } = useApp();
   const router = useRouter();
   const role = state.user?.role;
-  const [screen, setScreen] = useState<Screen>(() => {
-    if (typeof window !== 'undefined') {
-      const loginRole = sessionStorage.getItem('loginRole');
-      if (loginRole === 'family') return 'portal';
-    }
-    return role === 'familia' ? 'portal' : 'dashboard';
-  });
+  const [screen, setScreen] = useState<Screen>(
+    role === 'familia' ? 'portal' : 'dashboard'
+  );
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
-    sessionStorage.removeItem('loginRole');
+    // Lê ?portal=1 na URL e abre portal familiar, depois limpa o param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('portal') === '1') {
+      setScreen('portal');
+      window.history.replaceState({}, '', '/dashboard');
+    }
     const saved = localStorage.getItem('theme');
     const isDark = saved !== 'light';
     setDark(isDark);

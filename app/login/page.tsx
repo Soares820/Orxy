@@ -31,8 +31,7 @@ export default function LoginPage() {
       return;
     }
 
-    sessionStorage.setItem('loginRole', role);
-    router.push('/dashboard');
+    router.push(role === 'family' ? '/dashboard?portal=1' : '/dashboard');
   }
 
   return (
