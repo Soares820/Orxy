@@ -315,7 +315,7 @@ export default function PacientesScreen() {
                     {inviteMsg}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>Clique em "Enviar acesso" para mandar o convite de acesso ao portal da família</div>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>Clique em &quot;Enviar acesso&quot; para mandar o convite de acesso ao portal da família</div>
               </div>
 
               <div>
