@@ -122,6 +122,26 @@ function Topbar({
   );
 }
 
+const SCREEN_ROLES: Record<Screen, string[]> = {
+  dashboard:    ['admin', 'terapeuta', 'recepcao', 'financeiro'],
+  pacientes:    ['admin', 'terapeuta', 'recepcao'],
+  pei:          ['admin', 'terapeuta'],
+  avaliacoes:   ['admin', 'terapeuta'],
+  questionarios:['admin', 'terapeuta'],
+  agenda:       ['admin', 'terapeuta', 'recepcao'],
+  financeiro:   ['admin', 'financeiro'],
+  bi:           ['admin', 'financeiro'],
+  equipe:       ['admin'],
+  reavix:       ['admin', 'terapeuta'],
+  portal:       ['admin', 'terapeuta', 'familia'],
+  conta:        ['admin', 'terapeuta', 'recepcao', 'financeiro'],
+};
+
+function canAccess(s: Screen, role: string | undefined): boolean {
+  if (!role) return false;
+  return (SCREEN_ROLES[s] ?? ['admin']).includes(role);
+}
+
 function AppShell() {
   const { state } = useApp();
   const router = useRouter();
@@ -130,6 +150,11 @@ function AppShell() {
     role === 'familia' ? 'portal' : 'dashboard'
   );
   const [dark, setDark] = useState(true);
+
+  // Navegação com guard de permissão
+  const navigate = (s: Screen) => {
+    if (canAccess(s, role)) setScreen(s);
+  };
 
   useEffect(() => {
     // Lê ?portal=1 na URL e abre portal familiar, depois limpa o param
@@ -157,12 +182,12 @@ function AppShell() {
     }
   }, [state.initialized, state.user, router]);
 
-  // Auto-redirect familia to portal
+  // Redireciona se tela ativa não permitida para o role atual
   useEffect(() => {
-    if (state.user?.role === 'familia' && screen === 'dashboard') {
-      setScreen('portal');
-    }
-  }, [state.user?.role, screen]);
+    if (!role) return;
+    if (role === 'familia' && screen !== 'portal') { setScreen('portal'); return; }
+    if (!canAccess(screen, role)) setScreen('dashboard');
+  }, [role, screen]);
 
   if (!state.initialized || state.loading) {
     return (
@@ -176,7 +201,7 @@ function AppShell() {
   if (!state.user) return null;
 
   const SCREENS: Record<Screen, React.ReactNode> = {
-    dashboard: <DashboardHome onNav={setScreen} />,
+    dashboard: <DashboardHome onNav={navigate} />,
     pacientes: <PacientesScreen />,
     pei: <PeiScreen />,
     avaliacoes: <AvaliacoesScreen />,
@@ -186,7 +211,7 @@ function AppShell() {
     bi: <BiScreen />,
     equipe: <EquipeScreen />,
     reavix: <ReavixScreen />,
-    portal: <PortalScreen onNav={setScreen} />,
+    portal: <PortalScreen onNav={navigate} />,
     conta: <ContaScreen />,
   };
 
@@ -195,7 +220,7 @@ function AppShell() {
       <div className="main-area">
         <Topbar
           screen={screen}
-          onNav={setScreen}
+          onNav={navigate}
           dark={dark}
           onToggleTheme={toggleTheme}
         />

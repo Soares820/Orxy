@@ -42,6 +42,18 @@ export default function DashboardHome({ onNav }: Props) {
     weekday: 'long', day: 'numeric', month: 'long',
   });
 
+  const role = user?.role ?? '';
+  const TILE_ROLES: Record<string, string[]> = {
+    pacientes:   ['admin', 'terapeuta', 'recepcao'],
+    agenda:      ['admin', 'terapeuta', 'recepcao'],
+    pei:         ['admin', 'terapeuta'],
+    avaliacoes:  ['admin', 'terapeuta'],
+    financeiro:  ['admin', 'financeiro'],
+    bi:          ['admin', 'financeiro'],
+    equipe:      ['admin'],
+    reavix:      ['admin', 'terapeuta'],
+  };
+
   const tiles: Array<{ key: Screen; label: string; sub: string; color: string; icon: React.ReactNode }> = [
     {
       key: 'pacientes',
@@ -172,7 +184,7 @@ export default function DashboardHome({ onNav }: Props) {
 
       {/* Colorful tiles grid */}
       <div className="dash-tiles">
-        {tiles.map((tile) => (
+        {tiles.filter(t => (TILE_ROLES[t.key] ?? ['admin']).includes(role)).map((tile) => (
           <button
             key={`${tile.key}-${tile.label}`}
             className={`dash-tile ${tile.color}`}
