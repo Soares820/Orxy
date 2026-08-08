@@ -4,35 +4,36 @@ import { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { getLastNMonths, MONTH_NAMES } from '@/lib/utils';
 
-// ─── Mini bar chart ──────────────────────────────────────
-function Bar({ pct, color, label, sub }: { pct: number; color: string; label: string; sub?: string }) {
+function pctColor(p: number) { return p >= 80 ? '#10b981' : p >= 50 ? '#f59e0b' : '#ef4444'; }
+
+// ─── Mini sparkline bar ───────────────────────────────────
+function SparkBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ width: 110, fontSize: 12, fontWeight: 600, color: 'var(--t2)', flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-      <div style={{ flex: 1, height: 10, background: 'var(--sf2)', borderRadius: 5, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${Math.max(pct, pct > 0 ? 2 : 0)}%`, background: color, borderRadius: 5, transition: 'width .4s ease' }} />
-      </div>
-      {sub && <div style={{ width: 44, fontSize: 12, fontWeight: 700, color: 'var(--t1)', textAlign: 'right', flexShrink: 0 }}>{sub}</div>}
-    </div>
+    <div style={{ flex: 1, borderRadius: '3px 3px 0 0', height: `${Math.max(pct, 4)}%`, background: color, transition: 'height .3s ease' }} />
   );
 }
 
 // ─── KPI card ────────────────────────────────────────────
-function KpiCard({ value, label, color, sub }: { value: string | number; label: string; color: string; sub?: string }) {
+function Kpi({ value, label, color, sub, accent }: { value: string | number; label: string; color: string; sub?: string; accent?: string }) {
   return (
-    <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '18px 16px' }}>
-      <div style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color, opacity: .6, marginTop: 2, fontWeight: 600 }}>{sub}</div>}
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', marginTop: 6 }}>{label}</div>
+    <div style={{ background: 'var(--sf)', border: `1px solid var(--bdr)`, borderRadius: 'var(--r)', padding: '18px 16px', borderTop: `3px solid ${accent || color}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ fontSize: 30, fontWeight: 900, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color, fontWeight: 700, opacity: .75 }}>{sub}</div>}
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginTop: 4 }}>{label}</div>
     </div>
   );
 }
 
 // ─── Section card ─────────────────────────────────────────
-function Card({ title, children, style }: { title: string; children: React.ReactNode; style?: React.CSSProperties }) {
+function Card({ title, badge, children, style }: { title: string; badge?: string | number; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 18px', ...style }}>
-      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1)', marginBottom: 18, letterSpacing: '-.2px' }}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1)', flex: 1 }}>{title}</div>
+        {badge !== undefined && (
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--p)', background: 'var(--ps)', borderRadius: 20, padding: '3px 10px' }}>{badge}</div>
+        )}
+      </div>
       {children}
     </div>
   );
@@ -42,8 +43,14 @@ function Card({ title, children, style }: { title: string; children: React.React
 function BiEvolucao() {
   const { state } = useApp();
   const { data } = state;
+
+  const activeChildren = useMemo(() => {
+    const a = data.children.filter((c) => c.status === 'ativo');
+    return a.length > 0 ? a : data.children;
+  }, [data.children]);
+
   const [selectedChildId, setSelectedChildId] = useState<number | null>(
-    data.children.find((c) => c.status === 'ativo')?.id ?? data.children[0]?.id ?? null
+    activeChildren[0]?.id ?? null
   );
   const [dateFrom, setDateFrom] = useState<string>(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10);
@@ -51,38 +58,25 @@ function BiEvolucao() {
   const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const months = useMemo(() => getLastNMonths(6), []);
-
   const child = useMemo(() => data.children.find((c) => c.id === selectedChildId), [data.children, selectedChildId]);
 
-  const childGoals = useMemo(() => {
-    if (!selectedChildId) return [];
-    return data.goals.filter((g) => g.child_id === selectedChildId);
-  }, [data.goals, selectedChildId]);
-
-  const childSessions = useMemo(() => {
-    if (!selectedChildId) return [];
-    return data.sessions.filter((s) => s.child_id === selectedChildId);
-  }, [data.sessions, selectedChildId]);
-
-  const filteredSessions = useMemo(() => {
-    return childSessions.filter((s) => s.data >= dateFrom && s.data <= dateTo);
-  }, [childSessions, dateFrom, dateTo]);
+  const childGoals = useMemo(() => selectedChildId ? data.goals.filter((g) => g.child_id === selectedChildId) : [], [data.goals, selectedChildId]);
+  const childSessions = useMemo(() => selectedChildId ? data.sessions.filter((s) => s.child_id === selectedChildId) : [], [data.sessions, selectedChildId]);
+  const filteredSessions = useMemo(() => childSessions.filter((s) => s.data >= dateFrom && s.data <= dateTo), [childSessions, dateFrom, dateTo]);
 
   const goalStats = useMemo(() => {
     const total = childGoals.length;
     const atingido = childGoals.filter((g) => g.status === 'atingido').length;
     const ativo = childGoals.filter((g) => g.status === 'ativo').length;
     const pausado = childGoals.filter((g) => g.status === 'pausado').length;
-    const pct = total > 0 ? Math.round((atingido / total) * 100) : 0;
-    return { total, atingido, ativo, pausado, pct };
+    return { total, atingido, ativo, pausado, pct: total > 0 ? Math.round((atingido / total) * 100) : 0 };
   }, [childGoals]);
 
   const sessionStats = useMemo(() => {
     const total = filteredSessions.length;
     const realizadas = filteredSessions.filter((s) => s.status === 'realizado').length;
     const faltas = filteredSessions.filter((s) => s.status === 'falta' || s.status === 'cancelado').length;
-    const presenca = total > 0 ? Math.round((realizadas / total) * 100) : 0;
-    return { total, realizadas, faltas, presenca };
+    return { total, realizadas, faltas, presenca: total > 0 ? Math.round((realizadas / total) * 100) : 0 };
   }, [filteredSessions]);
 
   const sessionsByMonth = useMemo(() => months.map((m) => {
@@ -91,7 +85,6 @@ function BiEvolucao() {
       label: MONTH_NAMES[parseInt(m.slice(5, 7)) - 1].slice(0, 3),
       total: ms.length,
       realizadas: ms.filter((s) => s.status === 'realizado').length,
-      faltas: ms.filter((s) => s.status === 'falta' || s.status === 'cancelado').length,
     };
   }), [months, childSessions]);
 
@@ -111,13 +104,8 @@ function BiEvolucao() {
   const dttByActivity = useMemo(() => {
     const dttSessions = filteredSessions
       .filter((s) => s.tipo.startsWith('DTT - '))
-      .sort((a, b) => b.data.localeCompare(a.data) || (b.hora || '').localeCompare(a.hora || ''));
-
-    const map: Record<string, {
-      nome: string; categoria: string;
-      execs: Array<{ data: string; hora: string; acertos: number; parciais: number; erros: number; total: number; pct: number; obs?: string }>;
-    }> = {};
-
+      .sort((a, b) => b.data.localeCompare(a.data));
+    const map: Record<string, { nome: string; categoria: string; execs: Array<{ data: string; acertos: number; parciais: number; erros: number; total: number; pct: number; obs?: string }> }> = {};
     dttSessions.forEach((s) => {
       const nome = s.tipo.slice(5);
       if (!map[nome]) {
@@ -127,264 +115,234 @@ function BiEvolucao() {
       }
       try {
         const n = JSON.parse(s.notas || '{}');
-        map[nome].execs.push({ data: s.data, hora: s.hora || '', acertos: n.acertos ?? 0, parciais: n.parciais ?? 0, erros: n.erros ?? 0, total: n.total ?? 0, pct: n.pct ?? 0, obs: n.obs });
+        map[nome].execs.push({ data: s.data, acertos: n.acertos ?? 0, parciais: n.parciais ?? 0, erros: n.erros ?? 0, total: n.total ?? 0, pct: n.pct ?? 0, obs: n.obs });
       } catch { /* noop */ }
     });
-
     return Object.values(map).sort((a, b) => b.execs.length - a.execs.length);
   }, [filteredSessions]);
 
+  const childEvals = useMemo(() => data.evaluations.filter((e) => e.child_id === selectedChildId).sort((a, b) => b.data.localeCompare(a.data)), [data.evaluations, selectedChildId]);
+
   const AREA_COLORS = ['var(--p)', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+  const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
 
-  const activeChildren = data.children.filter((c) => c.status === 'ativo');
-  const displayChildren = activeChildren.length > 0 ? activeChildren : data.children;
-
-  const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '8px 10px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' };
+  const setPreset = (months: number) => {
+    const d = new Date(); d.setMonth(d.getMonth() - months);
+    setDateFrom(d.toISOString().slice(0, 10));
+    setDateTo(new Date().toISOString().slice(0, 10));
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Filtros: paciente + período */}
-      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-        <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Paciente</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {displayChildren.map((c) => (
+
+      {/* ── Seletor de paciente (destaque) ── */}
+      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '16px 20px' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>Selecionar paciente</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {activeChildren.length === 0 ? (
+            <span style={{ fontSize: 13, color: 'var(--t3)' }}>Nenhum paciente ativo cadastrado</span>
+          ) : activeChildren.map((c) => {
+            const sel = selectedChildId === c.id;
+            return (
               <button
                 key={c.id}
                 onClick={() => setSelectedChildId(c.id)}
                 style={{
-                  padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  border: `1.5px solid ${selectedChildId === c.id ? 'var(--p)' : 'var(--bdr)'}`,
-                  background: selectedChildId === c.id ? 'var(--ps)' : 'none',
-                  color: selectedChildId === c.id ? 'var(--p)' : 'var(--t2)',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `2px solid ${sel ? 'var(--p)' : 'var(--bdr)'}`,
+                  background: sel ? 'var(--ps)' : 'var(--sf2)',
+                  color: sel ? 'var(--p)' : 'var(--t2)',
                   transition: 'all .15s',
+                  boxShadow: sel ? '0 0 0 4px var(--ps)' : 'none',
                 }}
               >
-                {c.name.split(' ')[0]}
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: sel ? 'var(--p)' : 'var(--bdr)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: sel ? '#fff' : 'var(--t3)' }}>
+                  {c.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{c.name.split(' ').slice(0, 2).join(' ')}</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, opacity: .6, marginTop: 1 }}>{c.status === 'ativo' ? 'Em terapia' : c.status}</div>
+                </div>
+                {sel && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--p)', marginLeft: 4 }} />}
               </button>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>De</div>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inp, width: 140 }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Até</div>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...inp, width: 140 }} />
-          </div>
-          <button
-            onClick={() => {
-              const d = new Date(); d.setMonth(d.getMonth() - 3);
-              setDateFrom(d.toISOString().slice(0, 10));
-              setDateTo(new Date().toISOString().slice(0, 10));
-            }}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-          >
-            3 meses
-          </button>
-          <button
-            onClick={() => {
-              const d = new Date(); d.setFullYear(d.getFullYear() - 1);
-              setDateFrom(d.toISOString().slice(0, 10));
-              setDateTo(new Date().toISOString().slice(0, 10));
-            }}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-          >
-            1 ano
-          </button>
+            );
+          })}
         </div>
       </div>
 
       {!child ? (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--t3)', fontSize: 14 }}>
-          Nenhum paciente cadastrado
+          Selecione um paciente acima para ver a evolução clínica
         </div>
       ) : (
         <>
-          {/* KPIs do paciente */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(145px,1fr))', gap: 12 }}>
-            <KpiCard value={goalStats.pct + '%'} label="Metas atingidas" color={goalStats.pct >= 60 ? '#10b981' : '#f59e0b'} sub={`${goalStats.atingido}/${goalStats.total}`} />
-            <KpiCard value={goalStats.ativo} label="Metas ativas" color="var(--p)" />
-            <KpiCard value={sessionStats.presenca + '%'} label="Presença no período" color={sessionStats.presenca >= 80 ? '#10b981' : '#f59e0b'} sub={`${sessionStats.realizadas} sessões`} />
-            <KpiCard value={sessionStats.realizadas} label="Sessões realizadas" color="#10b981" />
-            <KpiCard value={sessionStats.faltas} label="Faltas / Canceladas" color="#ef4444" />
-            <KpiCard value={data.evaluations.filter((e) => e.child_id === selectedChildId).length} label="Avaliações" color="var(--v)" />
+          {/* ── Filtro de período ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--sf2)', borderRadius: 10, border: '1px solid var(--bdr)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>Período de análise:</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inp, width: 145 }} />
+              <span style={{ color: 'var(--t3)', fontSize: 13 }}>→</span>
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ ...inp, width: 145 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+              {[['1m', 1], ['3m', 3], ['6m', 6], ['1 ano', 12]].map(([label, n]) => (
+                <button key={label} onClick={() => setPreset(Number(n))}
+                  style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'var(--sf)', color: 'var(--t2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            {/* Progresso de metas */}
-            <Card title="Progresso de metas">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 20 }}>
-                <div style={{ position: 'relative', width: 88, height: 88, flexShrink: 0 }}>
-                  <svg width="88" height="88" viewBox="0 0 88 88">
-                    <circle cx="44" cy="44" r="36" fill="none" stroke="var(--sf2)" strokeWidth="10" />
-                    <circle
-                      cx="44" cy="44" r="36" fill="none"
-                      stroke={goalStats.pct >= 60 ? '#10b981' : goalStats.pct >= 30 ? '#f59e0b' : '#ef4444'}
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 36}`}
-                      strokeDashoffset={`${2 * Math.PI * 36 * (1 - goalStats.pct / 100)}`}
-                      transform="rotate(-90 44 44)"
-                      style={{ transition: 'stroke-dashoffset .6s ease' }}
-                    />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--t1)', lineHeight: 1 }}>{goalStats.pct}%</div>
-                    <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600 }}>atingido</div>
-                  </div>
-                </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {[
-                    { label: 'Atingidas', count: goalStats.atingido, color: '#10b981' },
-                    { label: 'Em andamento', count: goalStats.ativo, color: 'var(--p)' },
-                    { label: 'Pausadas', count: goalStats.pausado, color: 'var(--t3)' },
-                  ].map(({ label, count, color }) => (
-                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: 'var(--t2)' }}>{label}</span>
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* ── KPIs ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+            <Kpi value={`${sessionStats.presenca}%`} label="Taxa de presença" color={pctColor(sessionStats.presenca)} sub={`${sessionStats.realizadas} de ${sessionStats.total} sessões`} accent={pctColor(sessionStats.presenca)} />
+            <Kpi value={sessionStats.realizadas} label="Sessões realizadas" color="#10b981" accent="#10b981" />
+            <Kpi value={sessionStats.faltas} label="Faltas / Canceladas" color={sessionStats.faltas > 0 ? '#ef4444' : 'var(--t3)'} accent={sessionStats.faltas > 0 ? '#ef4444' : 'var(--bdr)'} />
+            <Kpi value={`${goalStats.pct}%`} label="Metas atingidas" color={pctColor(goalStats.pct)} sub={`${goalStats.atingido} de ${goalStats.total} metas`} accent={pctColor(goalStats.pct)} />
+            <Kpi value={goalStats.ativo} label="Metas em andamento" color="var(--p)" accent="var(--p)" />
+            <Kpi value={childEvals.length} label="Avaliações" color="var(--v)" accent="var(--v)" />
+          </div>
 
-              {goalsByArea.length > 0 && (
-                <>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Por área</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {goalsByArea.slice(0, 5).map(([area, { total, atingido }], i) => (
-                      <Bar
-                        key={area}
-                        label={area}
-                        pct={total > 0 ? (atingido / total) * 100 : 0}
-                        color={AREA_COLORS[i % AREA_COLORS.length]}
-                        sub={`${atingido}/${total}`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
+          {/* ── Gráficos principais ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
-              {goalStats.total === 0 && (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <div style={{ color: 'var(--t3)', fontSize: 13, marginBottom: 8 }}>Nenhuma meta cadastrada para este paciente</div>
-                  <div style={{ fontSize: 12, color: 'var(--t3)', padding: '8px 12px', background: 'var(--sf2)', borderRadius: 8, display: 'inline-block' }}>
-                    Crie metas em <strong style={{ color: 'var(--p)' }}>Atividades (PEI)</strong> para acompanhar o progresso aqui
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Sessões por mês */}
-            <Card title="Frequência de sessões (6 meses)">
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 130 }}>
+            {/* Frequência mensal */}
+            <Card title="Frequência de sessões" badge="6 meses">
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 120, marginBottom: 10 }}>
                 {sessionsByMonth.map((m) => (
                   <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
-                    <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600 }}>{m.total > 0 ? m.total : ''}</div>
-                    <div style={{ width: '100%', position: 'relative', borderRadius: '4px 4px 0 0', height: `${Math.max((m.total / maxSess) * 100, m.total > 0 ? 4 : 0)}%` }}>
+                    {m.total > 0 && <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700 }}>{m.total}</div>}
+                    <div style={{ width: '100%', height: `${Math.max((m.total / maxSess) * 100, m.total > 0 ? 5 : 0)}%`, position: 'relative', borderRadius: '4px 4px 0 0' }}>
                       <div style={{ position: 'absolute', inset: 0, background: 'var(--sf2)', borderRadius: '4px 4px 0 0' }} />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${(m.total > 0 ? m.realizadas / m.total : 0) * 100}%`, background: '#10b981', borderRadius: '4px 4px 0 0' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${m.total > 0 ? (m.realizadas / m.total) * 100 : 0}%`, background: '#10b981', borderRadius: '4px 4px 0 0', transition: 'height .4s ease' }} />
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>{m.label}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
-                {[['var(--sf2)', 'Total'], ['#10b981', 'Realizadas']].map(([c, l]) => (
-                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'var(--t3)' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />{l}
+              <div style={{ display: 'flex', gap: 14, borderTop: '1px solid var(--bdr)', paddingTop: 12 }}>
+                {[['var(--sf2)', 'Agendadas'], ['#10b981', 'Realizadas']].map(([c, l]) => (
+                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--t3)' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: c }} />{l}
                   </div>
                 ))}
+                <div style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 900, color: pctColor(sessionStats.presenca) }}>{sessionStats.presenca}% presença</div>
               </div>
+            </Card>
 
-              <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--bdr)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>Taxa de presença</span>
-                  <span style={{ fontSize: 14, fontWeight: 900, color: sessionStats.presenca >= 80 ? '#10b981' : '#f59e0b' }}>{sessionStats.presenca}%</span>
+            {/* Progresso de metas */}
+            <Card title="Progresso de metas">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
+                <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+                  <svg width="80" height="80" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="32" fill="none" stroke="var(--sf2)" strokeWidth="9" />
+                    <circle cx="40" cy="40" r="32" fill="none"
+                      stroke={pctColor(goalStats.pct)} strokeWidth="9" strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 32}`}
+                      strokeDashoffset={`${2 * Math.PI * 32 * (1 - goalStats.pct / 100)}`}
+                      transform="rotate(-90 40 40)" style={{ transition: 'stroke-dashoffset .6s ease' }} />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1)', lineHeight: 1 }}>{goalStats.pct}%</div>
+                    <div style={{ fontSize: 8, color: 'var(--t3)', fontWeight: 600 }}>atingido</div>
+                  </div>
                 </div>
-                <div style={{ height: 8, background: 'var(--sf2)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${sessionStats.presenca}%`, background: sessionStats.presenca >= 80 ? '#10b981' : '#f59e0b', borderRadius: 4, transition: 'width .4s ease' }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  {[{ label: 'Atingidas', count: goalStats.atingido, color: '#10b981' }, { label: 'Em andamento', count: goalStats.ativo, color: 'var(--p)' }, { label: 'Pausadas', count: goalStats.pausado, color: 'var(--t3)' }].map(({ label, count, color }) => (
+                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+                        <span style={{ fontSize: 12, color: 'var(--t2)' }}>{label}</span>
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)', fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+              {goalsByArea.length > 0 ? (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>Por área</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {goalsByArea.slice(0, 4).map(([area, { total, atingido }], i) => {
+                      const pct = total > 0 ? Math.round((atingido / total) * 100) : 0;
+                      return (
+                        <div key={area} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 100, fontSize: 12, fontWeight: 600, color: 'var(--t2)', flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{area}</div>
+                          <div style={{ flex: 1, height: 8, background: 'var(--sf2)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: AREA_COLORS[i % AREA_COLORS.length], borderRadius: 4, transition: 'width .4s ease' }} />
+                          </div>
+                          <div style={{ width: 36, fontSize: 11, fontWeight: 700, color: 'var(--t1)', textAlign: 'right', flexShrink: 0 }}>{atingido}/{total}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '10px 0', color: 'var(--t3)', fontSize: 12 }}>
+                  Crie metas em <strong style={{ color: 'var(--p)' }}>Atividades (PEI)</strong> para ver o progresso
+                </div>
+              )}
             </Card>
           </div>
 
-          {/* Atividades DTT executadas */}
-          <Card title={`Atividades DTT executadas no período (${dttByActivity.reduce((s, a) => s + a.execs.length, 0)} execuções)`}>
-            {dttByActivity.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 13 }}>
-                Nenhuma atividade DTT registrada no período selecionado
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* ── Atividades DTT ── */}
+          {dttByActivity.length > 0 && (
+            <Card title="Atividades DTT — execuções no período" badge={`${dttByActivity.reduce((s, a) => s + a.execs.length, 0)} execuções`}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                 {dttByActivity.map((act) => {
-                  const lastPct = act.execs[0]?.pct ?? 0;
-                  const firstPct = act.execs[act.execs.length - 1]?.pct ?? 0;
-                  const trend = lastPct - firstPct;
+                  const last = act.execs[0]?.pct ?? 0;
+                  const first = act.execs[act.execs.length - 1]?.pct ?? 0;
+                  const trend = last - first;
+                  const avgPct = act.execs.length > 0 ? Math.round(act.execs.reduce((s, e) => s + e.pct, 0) / act.execs.length) : 0;
                   return (
-                    <div key={act.nome} style={{ border: '1px solid var(--bdr)', borderRadius: 10, overflow: 'hidden' }}>
-                      {/* Activity header */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--sf2)' }}>
+                    <div key={act.nome} style={{ border: '1px solid var(--bdr)', borderRadius: 12, overflow: 'hidden', background: 'var(--sf2)' }}>
+                      {/* Header */}
+                      <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--bdr)', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--sf)' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{act.nome}</div>
-                          {act.categoria && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{act.categoria}</div>}
+                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{act.nome}</div>
+                          {act.categoria && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{act.categoria}</div>}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: lastPct >= 80 ? '#10b981' : lastPct >= 50 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>{lastPct}%</div>
-                            <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>última sessão</div>
-                          </div>
-                          {act.execs.length > 1 && (
-                            <div style={{ fontSize: 12, fontWeight: 700, color: trend > 0 ? '#10b981' : trend < 0 ? '#ef4444' : 'var(--t3)', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 6, padding: '3px 8px' }}>
-                              {trend > 0 ? `+${trend}%` : trend < 0 ? `${trend}%` : '0%'}
-                            </div>
-                          )}
-                          <div style={{ fontSize: 11, color: 'var(--t3)', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 6, padding: '3px 8px' }}>
-                            {act.execs.length}x
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                          <div style={{ fontSize: 22, fontWeight: 900, color: pctColor(last), lineHeight: 1 }}>{last}%</div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {act.execs.length > 1 && (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: trend > 0 ? '#10b981' : trend < 0 ? '#ef4444' : 'var(--t3)', background: trend > 0 ? '#10b98120' : trend < 0 ? '#ef444420' : 'var(--sf2)', border: `1px solid ${trend > 0 ? '#10b98140' : trend < 0 ? '#ef444440' : 'var(--bdr)'}`, borderRadius: 6, padding: '2px 7px' }}>
+                                {trend > 0 ? `▲ +${trend}%` : trend < 0 ? `▼ ${trend}%` : '→ 0%'}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 6, padding: '2px 7px' }}>{act.execs.length}x</span>
                           </div>
                         </div>
                       </div>
-                      {/* Mini sparkline */}
+                      {/* Sparkline */}
                       {act.execs.length > 1 && (
-                        <div style={{ padding: '8px 14px', display: 'flex', alignItems: 'flex-end', gap: 3, height: 44 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36, padding: '6px 14px 0' }}>
                           {[...act.execs].reverse().map((ex, i) => (
-                            <div
-                              key={i}
-                              title={`${new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}: ${ex.pct}%`}
-                              style={{
-                                flex: 1, borderRadius: '3px 3px 0 0',
-                                height: `${Math.max(ex.pct, 4)}%`,
-                                background: ex.pct >= 80 ? '#10b981' : ex.pct >= 50 ? '#f59e0b' : '#ef4444',
-                                opacity: i === act.execs.length - 1 ? 1 : 0.6 + (i / act.execs.length) * 0.4,
-                                transition: 'height .3s ease',
-                              }}
-                            />
+                            <SparkBar key={i} pct={ex.pct} color={pctColor(ex.pct)} />
                           ))}
                         </div>
                       )}
-                      {/* Executions list (last 5) */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                        {act.execs.slice(0, 5).map((ex, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderTop: '1px solid var(--bdr)', fontSize: 12 }}>
-                            <div style={{ color: 'var(--t3)', flexShrink: 0, width: 80 }}>{new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
-                            <div style={{ flex: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                              <span style={{ color: '#10b981', fontWeight: 700 }}>✓ {ex.acertos}</span>
-                              {ex.parciais > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}>◑ {ex.parciais}</span>}
-                              <span style={{ color: '#ef4444', fontWeight: 700 }}>✗ {ex.erros}</span>
-                              <span style={{ color: 'var(--t3)' }}>/ {ex.total}</span>
+                      {/* Executions */}
+                      <div>
+                        {act.execs.slice(0, 4).map((ex, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderTop: '1px solid var(--bdr)', fontSize: 12 }}>
+                            <div style={{ color: 'var(--t3)', flexShrink: 0, width: 78, fontSize: 11 }}>
+                              {new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                             </div>
-                            <div style={{ fontWeight: 800, color: ex.pct >= 80 ? '#10b981' : ex.pct >= 50 ? '#f59e0b' : '#ef4444', flexShrink: 0 }}>{ex.pct}%</div>
-                            {ex.obs && <div style={{ color: 'var(--t3)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }} title={ex.obs}>{ex.obs}</div>}
+                            <div style={{ flex: 1, display: 'flex', gap: 8 }}>
+                              <span style={{ color: '#10b981', fontWeight: 700 }}>✓{ex.acertos}</span>
+                              {ex.parciais > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}>◑{ex.parciais}</span>}
+                              <span style={{ color: '#ef4444', fontWeight: 700 }}>✗{ex.erros}</span>
+                              <span style={{ color: 'var(--t3)' }}>/{ex.total}</span>
+                            </div>
+                            <div style={{ fontWeight: 900, fontSize: 13, color: pctColor(ex.pct), flexShrink: 0, minWidth: 36, textAlign: 'right' }}>{ex.pct}%</div>
                           </div>
                         ))}
-                        {act.execs.length > 5 && (
+                        {act.execs.length > 4 && (
                           <div style={{ padding: '6px 14px', fontSize: 11, color: 'var(--t3)', borderTop: '1px solid var(--bdr)', textAlign: 'center' }}>
-                            + {act.execs.length - 5} execuções mais antigas no período
+                            + {act.execs.length - 4} execuções • Média: {avgPct}%
                           </div>
                         )}
                       </div>
@@ -392,30 +350,35 @@ function BiEvolucao() {
                   );
                 })}
               </div>
-            )}
-          </Card>
+            </Card>
+          )}
 
-          {/* Últimas avaliações */}
-          {data.evaluations.filter((e) => e.child_id === selectedChildId).length > 0 && (
-            <Card title="Avaliações realizadas">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {data.evaluations
-                  .filter((e) => e.child_id === selectedChildId)
-                  .sort((a, b) => b.data.localeCompare(a.data))
-                  .map((e) => (
-                    <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--sf2)', borderRadius: 10 }}>
-                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--ps)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--p)' }}>{e.tipo.slice(0, 3)}</span>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{e.tipo}</div>
-                        {e.notas && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.notas}</div>}
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--t3)', flexShrink: 0 }}>
+          {dttByActivity.length === 0 && (
+            <div style={{ background: 'var(--sf)', border: '1px dashed var(--bdr)', borderRadius: 'var(--r)', padding: '32px', textAlign: 'center' }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>🎯</div>
+              <div style={{ fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>Nenhuma atividade DTT no período</div>
+              <div style={{ fontSize: 12, color: 'var(--t3)' }}>Execute atividades em <strong style={{ color: 'var(--p)' }}>Atividades (PEI)</strong> para ver a evolução aqui</div>
+            </div>
+          )}
+
+          {/* ── Avaliações ── */}
+          {childEvals.length > 0 && (
+            <Card title="Avaliações realizadas" badge={childEvals.length}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+                {childEvals.map((e) => (
+                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 10 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--ps)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--p)' }}>{e.tipo.slice(0, 4)}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{e.tipo}</div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
                         {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                       </div>
+                      {e.notas && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.notas}</div>}
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             </Card>
           )}
