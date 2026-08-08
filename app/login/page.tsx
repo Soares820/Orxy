@@ -31,7 +31,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/dashboard');
+    // Passa a seleção de perfil via URL para o dashboard abrir a tela certa
+    router.push(role === 'family' ? '/dashboard?view=familia' : '/dashboard');
   }
 
   return (

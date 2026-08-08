@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { AppProvider, useApp } from '@/contexts/AppContext';
@@ -146,10 +146,9 @@ function AppShell() {
   const { state } = useApp();
   const router = useRouter();
   const role = state.user?.role;
-  const [screen, setScreen] = useState<Screen>(
-    role === 'familia' ? 'portal' : 'dashboard'
-  );
+  const [screen, setScreen] = useState<Screen>('dashboard');
   const [dark, setDark] = useState(true);
+  const viewApplied = useRef(false);
 
   // Navegação com guard de permissão
   const navigate = (s: Screen) => {
@@ -175,6 +174,22 @@ function AppShell() {
       router.replace('/login');
     }
   }, [state.initialized, state.user, router]);
+
+  // Uma vez: aplica a tela inicial baseada no role do banco + seleção do login
+  useEffect(() => {
+    if (!role || viewApplied.current) return;
+    viewApplied.current = true;
+
+    // Usuários familia sempre vão para portal (role do banco ganha)
+    if (role === 'familia') { setScreen('portal'); return; }
+
+    // Admin/terapeuta: respeita a seleção do formulário de login (?view=familia)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'familia' && canAccess('portal', role)) {
+      setScreen('portal');
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [role]);
 
   // Redireciona se tela ativa não permitida para o role atual
   useEffect(() => {
