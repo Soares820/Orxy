@@ -52,6 +52,8 @@ function BiEvolucao() {
   const [selectedChildId, setSelectedChildId] = useState<number | null>(
     activeChildren[0]?.id ?? null
   );
+  const [search, setSearch] = useState('');
+  const [dropOpen, setDropOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10);
   });
@@ -126,6 +128,11 @@ function BiEvolucao() {
   const AREA_COLORS = ['var(--p)', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
   const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
 
+  const searchResults = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return q ? activeChildren.filter((c) => c.name.toLowerCase().includes(q)) : activeChildren;
+  }, [activeChildren, search]);
+
   const setPreset = (months: number) => {
     const d = new Date(); d.setMonth(d.getMonth() - months);
     setDateFrom(d.toISOString().slice(0, 10));
@@ -135,39 +142,68 @@ function BiEvolucao() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* ── Seletor de paciente (destaque) ── */}
+      {/* ── Seletor de paciente (busca + dropdown) ── */}
       <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '16px 20px' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>Selecionar paciente</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {activeChildren.length === 0 ? (
-            <span style={{ fontSize: 13, color: 'var(--t3)' }}>Nenhum paciente ativo cadastrado</span>
-          ) : activeChildren.map((c) => {
-            const sel = selectedChildId === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setSelectedChildId(c.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  border: `2px solid ${sel ? 'var(--p)' : 'var(--bdr)'}`,
-                  background: sel ? 'var(--ps)' : 'var(--sf2)',
-                  color: sel ? 'var(--p)' : 'var(--t2)',
-                  transition: 'all .15s',
-                  boxShadow: sel ? '0 0 0 4px var(--ps)' : 'none',
-                }}
-              >
-                <div style={{ width: 30, height: 30, borderRadius: '50%', background: sel ? 'var(--p)' : 'var(--bdr)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: sel ? '#fff' : 'var(--t3)' }}>
-                  {c.name.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{c.name.split(' ').slice(0, 2).join(' ')}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: .6, marginTop: 1 }}>{c.status === 'ativo' ? 'Em terapia' : c.status}</div>
-                </div>
-                {sel && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--p)', marginLeft: 4 }} />}
-              </button>
-            );
-          })}
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Paciente selecionado</div>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+          {/* Campo de busca com dropdown */}
+          <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: 400 }}>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', fontSize: 15, opacity: .5, pointerEvents: 'none' }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Digite o nome do paciente..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setDropOpen(true); }}
+                onFocus={() => setDropOpen(true)}
+                onBlur={() => setTimeout(() => setDropOpen(false), 150)}
+                style={{ ...inp, width: '100%', paddingLeft: 38, fontSize: 14 }}
+              />
+            </div>
+            {dropOpen && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: 'var(--sf)', border: '1.5px solid var(--p)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,.3)', marginTop: 4, maxHeight: 260, overflowY: 'auto' }}>
+                {searchResults.length === 0 ? (
+                  <div style={{ padding: '14px 16px', fontSize: 13, color: 'var(--t3)' }}>Nenhum paciente encontrado</div>
+                ) : searchResults.map((c) => {
+                  const sel = selectedChildId === c.id;
+                  return (
+                    <div
+                      key={c.id}
+                      onMouseDown={() => { setSelectedChildId(c.id); setSearch(''); setDropOpen(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', cursor: 'pointer', background: sel ? 'var(--ps)' : 'transparent', borderBottom: '1px solid var(--bdr)', transition: 'background .1s' }}
+                      onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = 'var(--sf2)'; }}
+                      onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                    >
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: sel ? 'var(--p)' : 'var(--sf2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: sel ? '#fff' : 'var(--t2)', flexShrink: 0 }}>
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: sel ? 'var(--p)' : 'var(--t1)' }}>{c.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{c.status === 'ativo' ? 'Em terapia' : c.status}</div>
+                      </div>
+                      {sel && <div style={{ fontSize: 16, color: 'var(--p)' }}>✓</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Card do paciente selecionado */}
+          {child ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'var(--ps)', border: '2px solid var(--p)', borderRadius: 12, flex: '0 0 auto' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>
+                {child.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--p)' }}>{child.name.split(' ').slice(0, 2).join(' ')}</div>
+                <div style={{ fontSize: 11, color: 'var(--p)', opacity: .7, marginTop: 1 }}>Em terapia • {activeChildren.length} paciente{activeChildren.length !== 1 ? 's' : ''} ativo{activeChildren.length !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0' }}>Nenhum paciente selecionado — use a busca ao lado</div>
+          )}
         </div>
       </div>
 
