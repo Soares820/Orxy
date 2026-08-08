@@ -126,12 +126,17 @@ function AppShell() {
   const { state } = useApp();
   const router = useRouter();
   const role = state.user?.role;
-  const [screen, setScreen] = useState<Screen>(() =>
-    role === 'familia' ? 'portal' : 'dashboard'
-  );
+  const [screen, setScreen] = useState<Screen>(() => {
+    if (typeof window !== 'undefined') {
+      const loginRole = sessionStorage.getItem('loginRole');
+      if (loginRole === 'family') return 'portal';
+    }
+    return role === 'familia' ? 'portal' : 'dashboard';
+  });
   const [dark, setDark] = useState(true);
 
   useEffect(() => {
+    sessionStorage.removeItem('loginRole');
     const saved = localStorage.getItem('theme');
     const isDark = saved !== 'light';
     setDark(isDark);

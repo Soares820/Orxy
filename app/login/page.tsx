@@ -31,6 +31,7 @@ export default function LoginPage() {
       return;
     }
 
+    sessionStorage.setItem('loginRole', role);
     router.push('/dashboard');
   }
 
