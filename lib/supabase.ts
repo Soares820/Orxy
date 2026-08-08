@@ -1,26 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-function safeUrl(raw: string | undefined): string {
-  if (!raw) return 'https://placeholder.supabase.co';
-  try { new URL(raw); return raw; } catch { return 'https://placeholder.supabase.co'; }
+// Singleton — criado apenas quando realmente usado (não durante o build)
+let _client: SupabaseClient | null = null;
+
+function getClient(): SupabaseClient {
+  if (!_client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+    _client = createClient(url, key);
+  }
+  return _client;
 }
 
-const SUPABASE_URL = safeUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+// Proxy transparente — importar { supabase } não chama createClient no build
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_t, prop: string | symbol) {
+    return getClient()[prop as keyof SupabaseClient];
+  },
+});
 
-export const supabase = (() => {
-  try {
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } catch {
-    return createClient('https://placeholder.supabase.co', 'placeholder-anon-key');
-  }
-})();
-
-export function createServiceClient() {
-  const url = safeUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada');
-  return createClient(url, serviceKey, {
+export function createServiceClient(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurada');
+  return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
