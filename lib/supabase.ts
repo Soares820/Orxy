@@ -13,7 +13,6 @@ function getClient(): SupabaseClient {
 }
 
 // Proxy transparente — importar { supabase } não chama createClient no build
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_t, prop: string | symbol) {
     return getClient()[prop as keyof SupabaseClient];
