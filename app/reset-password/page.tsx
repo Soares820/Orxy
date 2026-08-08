@@ -31,11 +31,20 @@ export default function ResetPasswordPage() {
     if (!email) { setError('Informe seu e-mail'); return; }
     setLoading(true);
     setError('');
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    try {
+      // Usa API server-side para gerar link com redirectTo correto (bypassa allowlist do Supabase)
+      const res = await fetch('/api/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) throw new Error('Erro ao enviar e-mail');
+    } catch {
+      setError('Erro ao enviar e-mail. Tente novamente.');
+      setLoading(false);
+      return;
+    }
     setLoading(false);
-    if (err) { setError(err.message); return; }
     setMode('sent');
   }
 

@@ -47,8 +47,49 @@ const PREDEFINED: Atividade[] = [
 
 const CATEGORIAS: Categoria[] = ['Comunicação', 'Cognitivo', 'Social', 'Motor', 'Sensorial', 'Autonomia'];
 
+// ─── Patient selector modal ───────────────────────────────
+function SelectPacienteModal({ atividade, pacientes, onSelect, onClose }: {
+  atividade: Atividade;
+  pacientes: { id: number; name: string; status: string }[];
+  onSelect: (id: number, nome: string) => void;
+  onClose: () => void;
+}) {
+  const ativos = pacientes.filter((p) => p.status === 'ativo');
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 380, boxShadow: 'var(--sh-xl)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Selecionar paciente</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', marginBottom: 20 }}>{atividade.nome}</div>
+        {ativos.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>
+            Nenhum paciente ativo cadastrado.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+            {ativos.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onSelect(p.id, p.name)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--p)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bdr)')}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--ps)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: 'var(--p)', flexShrink: 0 }}>
+                  {p.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{p.name}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── DTT Modal ────────────────────────────────────────────
-function DttModal({ atividade, onClose }: { atividade: Atividade; onClose: () => void }) {
+function DttModal({ atividade, pacienteNome, onClose }: { atividade: Atividade; pacienteNome: string; onClose: () => void }) {
   const [trials, setTrials] = useState<DttTrial[]>([]);
   const [obs, setObs] = useState('');
   const [finalizado, setFinalizado] = useState(false);
@@ -93,9 +134,15 @@ function DttModal({ atividade, onClose }: { atividade: Atividade; onClose: () =>
       <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 360, boxShadow: 'var(--sh-xl)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
 
-        {/* Category badge */}
-        <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fff', background: cor, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-          {atividade.categoria}
+        {/* Paciente + categoria */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: 'var(--t1)', background: 'var(--sf2)', border: '1px solid var(--bdr)' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            {pacienteNome}
+          </div>
+          <div style={{ display: 'inline-block', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fff', background: cor, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            {atividade.categoria}
+          </div>
         </div>
 
         <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1)', marginBottom: 20, lineHeight: 1.2 }}>{atividade.nome}</h2>
@@ -200,7 +247,8 @@ export default function PeiScreen() {
 
   const [catFilter, setCatFilter] = useState<Categoria | 'Todas'>('Todas');
   const [search, setSearch] = useState('');
-  const [executing, setExecuting] = useState<Atividade | null>(null);
+  const [selectingPaciente, setSelectingPaciente] = useState<Atividade | null>(null);
+  const [executing, setExecuting] = useState<{ atividade: Atividade; pacienteId: number; pacienteNome: string } | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
   const [customActivities, setCustomActivities] = useState<Atividade[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -314,7 +362,7 @@ export default function PeiScreen() {
               <AtividadeCard
                 key={ativ.id}
                 atividade={ativ}
-                onExecutar={() => setExecuting(ativ)}
+                onExecutar={() => setSelectingPaciente(ativ)}
                 onEdit={ativ.tipo === 'personalizada' ? () => openEdit(ativ) : undefined}
               />
             ))}
@@ -322,8 +370,27 @@ export default function PeiScreen() {
         )}
       </div>
 
+      {/* Patient selector modal */}
+      {selectingPaciente && (
+        <SelectPacienteModal
+          atividade={selectingPaciente}
+          pacientes={state.data.children as { id: number; name: string; status: string }[]}
+          onSelect={(id, nome) => {
+            setExecuting({ atividade: selectingPaciente, pacienteId: id, pacienteNome: nome });
+            setSelectingPaciente(null);
+          }}
+          onClose={() => setSelectingPaciente(null)}
+        />
+      )}
+
       {/* DTT Execution Modal */}
-      {executing && <DttModal atividade={executing} onClose={() => setExecuting(null)} />}
+      {executing && (
+        <DttModal
+          atividade={executing.atividade}
+          pacienteNome={executing.pacienteNome}
+          onClose={() => setExecuting(null)}
+        />
+      )}
 
       {/* New/Edit Activity Modal */}
       {showNewModal && (

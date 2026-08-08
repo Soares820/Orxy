@@ -38,13 +38,13 @@ export async function POST(req: NextRequest) {
   // Verifica que o usuário autenticado pertence à clinic_id informada
   const { data: userRecord } = await supabase
     .from('users')
-    .select('clinic_id, nivel')
+    .select('clinic_id, role')
     .eq('auth_id', user.id)
     .single();
   if (!userRecord || userRecord.clinic_id !== clinic_id) {
     return NextResponse.json({ error: 'Sem permissão para convidar nesta clínica' }, { status: 403 });
   }
-  if (userRecord.nivel !== 'admin') {
+  if (userRecord.role !== 'admin') {
     return NextResponse.json({ error: 'Apenas administradores podem convidar membros' }, { status: 403 });
   }
   const appUrl = process.env.APP_URL ?? 'https://to-plataforma.vercel.app';
@@ -97,11 +97,16 @@ export async function POST(req: NextRequest) {
           </div>
         </div>`;
 
-      await fetch('https://api.resend.com/emails', {
+      const fromAddr = process.env.RESEND_FROM ?? 'T.O Plataforma <onboarding@resend.dev>';
+      const resendResp = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: 'T.O Plataforma <noreply@vero.app>', to: [email], subject: 'Você foi convidado para a T.O Plataforma', html }),
+        body: JSON.stringify({ from: fromAddr, to: [email], subject: 'Você foi convidado para a T.O Plataforma', html }),
       });
+      if (!resendResp.ok) {
+        const resendErr = await resendResp.json().catch(() => ({}));
+        console.error('Resend error:', resendErr);
+      }
     }
 
     return NextResponse.json({ ok: true, message: `Convite enviado para ${email}` });

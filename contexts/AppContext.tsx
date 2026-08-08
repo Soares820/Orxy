@@ -192,21 +192,62 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
           await loadUserData(userRow.clinic_id);
         } else {
-          // Fallback: usuário autenticado mas sem perfil no banco ainda
-          dispatch({
-            type: 'SET_USER',
-            payload: {
-              id: session.user.id,
-              auth_id: session.user.id,
-              email: session.user.email ?? '',
-              clinicId: '',
-              clinicName: session.user.user_metadata?.clinic_name ?? 'Minha Clínica',
-              role: session.user.user_metadata?.role ?? 'admin',
-              name: session.user.user_metadata?.full_name ?? session.user.email ?? '',
-              plan: 'trial',
-              trialEndsAt: null,
-            },
-          });
+          // Sem perfil no banco — provisiona automaticamente (cria clínica + usuario)
+          try {
+            const provRes = await fetch('/api/provision', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (provRes.ok) {
+              const { user: provUser, clinic } = await provRes.json();
+              dispatch({
+                type: 'SET_USER',
+                payload: {
+                  id: provUser.id,
+                  auth_id: session.user.id,
+                  email: session.user.email ?? '',
+                  clinicId: provUser.clinic_id,
+                  clinicName: clinic?.nome ?? 'Minha Clínica',
+                  role: provUser.role,
+                  name: provUser.nome,
+                  plan: clinic?.plano ?? 'trial',
+                  trialEndsAt: clinic?.trial_ends ?? null,
+                },
+              });
+              await loadUserData(provUser.clinic_id);
+            } else {
+              // Fallback mínimo se o provisionamento falhar
+              dispatch({
+                type: 'SET_USER',
+                payload: {
+                  id: session.user.id,
+                  auth_id: session.user.id,
+                  email: session.user.email ?? '',
+                  clinicId: '',
+                  clinicName: 'Minha Clínica',
+                  role: 'admin',
+                  name: session.user.user_metadata?.full_name ?? session.user.email ?? '',
+                  plan: 'trial',
+                  trialEndsAt: null,
+                },
+              });
+            }
+          } catch {
+            dispatch({
+              type: 'SET_USER',
+              payload: {
+                id: session.user.id,
+                auth_id: session.user.id,
+                email: session.user.email ?? '',
+                clinicId: '',
+                clinicName: 'Minha Clínica',
+                role: 'admin',
+                name: session.user.user_metadata?.full_name ?? session.user.email ?? '',
+                plan: 'trial',
+                trialEndsAt: null,
+              },
+            });
+          }
         }
       } else {
         dispatch({ type: 'SET_USER', payload: null });

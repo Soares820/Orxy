@@ -38,6 +38,7 @@ export default function AgendaScreen() {
     duracao_min: '50', tipo: 'ABA', status: 'agendado', notas: '',
   });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   /* ── Calendar grid ── */
   const calDays = useMemo(() => {
@@ -104,14 +105,18 @@ export default function AgendaScreen() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.child_id) return;
+    if (!form.child_id || !state.user?.clinicId) {
+      setSaveError('Selecione um paciente e aguarde o carregamento.');
+      return;
+    }
     setSaving(true);
+    setSaveError('');
     try {
       const { supabase } = await import('@/lib/supabase');
       const childId = Number(form.child_id);
       const paciente = data.children.find(c => c.id === childId);
       const payload = {
-        clinic_id: state.user?.clinicId,
+        clinic_id: state.user.clinicId,
         child_id: childId,
         data: form.data,
         hora: form.hora,
@@ -122,13 +127,17 @@ export default function AgendaScreen() {
         paciente_nome: paciente?.name ?? null,
       };
       if (editing) {
-        const { data: up } = await supabase.from('sessoes').update(payload).eq('id', editing.id).select().single();
+        const { data: up, error } = await supabase.from('sessoes').update(payload).eq('id', editing.id).select().single();
+        if (error) { setSaveError(error.message); return; }
         if (up) dispatch({ type: 'UPDATE_SESSION', payload: up });
       } else {
-        const { data: cr } = await supabase.from('sessoes').insert(payload).select().single();
+        const { data: cr, error } = await supabase.from('sessoes').insert(payload).select().single();
+        if (error) { setSaveError(error.message); return; }
         if (cr) dispatch({ type: 'ADD_SESSION', payload: cr });
       }
       setShowModal(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
     } finally { setSaving(false); }
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatDate } from '@/lib/utils';
 import type { Avaliacao } from '@/lib/types';
@@ -208,6 +208,14 @@ export default function AvaliacoesScreen() {
   const [showModal, setShowModal] = useState(false);
   const [selectedAval, setSelectedAval] = useState<Avaliacao | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  // Inicializa o paciente selecionado quando os dados carregam
+  useEffect(() => {
+    if (!selectedChildId && data.children.length > 0) {
+      setSelectedChildId(data.children[0].id);
+    }
+  }, [data.children, selectedChildId]);
   const [form, setForm] = useState({
     tipo: 'PEDI' as TipoAvaliacao,
     data: new Date().toISOString().slice(0, 10),
@@ -272,12 +280,15 @@ export default function AvaliacoesScreen() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedChildId) return;
+    if (!selectedChildId || !state.user?.clinicId) {
+      setSaveError('Selecione um paciente e aguarde o carregamento da clínica.');
+      return;
+    }
     setSaving(true);
+    setSaveError('');
     try {
       const { supabase } = await import('@/lib/supabase');
 
-      // Convert string scores to numbers for storage
       const defs = SCORE_DEFS[form.tipo];
       const numericScores: Record<string, unknown> = {};
       if (defs) {
@@ -291,7 +302,7 @@ export default function AvaliacoesScreen() {
       }
 
       const payload = {
-        clinic_id: state.user?.clinicId,
+        clinic_id: state.user.clinicId,
         child_id: selectedChildId,
         tipo: form.tipo,
         data: form.data,
@@ -301,16 +312,16 @@ export default function AvaliacoesScreen() {
 
       if (selectedAval) {
         const { data: upd, error } = await supabase.from('avaliacoes').update(payload).eq('id', selectedAval.id).select().single();
-        if (!error && upd) {
-          dispatch({ type: 'SET_DATA', payload: { evaluations: data.evaluations.map((a) => a.id === upd.id ? upd : a) } });
-        }
+        if (error) { setSaveError(error.message); return; }
+        if (upd) dispatch({ type: 'SET_DATA', payload: { evaluations: data.evaluations.map((a) => a.id === upd.id ? upd : a) } });
       } else {
         const { data: created, error } = await supabase.from('avaliacoes').insert(payload).select().single();
-        if (!error && created) {
-          dispatch({ type: 'SET_DATA', payload: { evaluations: [created, ...data.evaluations] } });
-        }
+        if (error) { setSaveError(error.message); return; }
+        if (created) dispatch({ type: 'SET_DATA', payload: { evaluations: [created, ...data.evaluations] } });
       }
       setShowModal(false);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
     } finally {
       setSaving(false);
     }
@@ -502,6 +513,11 @@ export default function AvaliacoesScreen() {
                   {saving ? 'Salvando...' : selectedAval ? 'Salvar alterações' : 'Registrar avaliação'}
                 </button>
               </div>
+              {saveError && (
+                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.35)', borderRadius: 10, color: '#f87171', fontSize: 13 }}>
+                  {saveError}
+                </div>
+              )}
             </form>
           </div>
         </div>

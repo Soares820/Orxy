@@ -11,23 +11,48 @@ export default function ContaScreen() {
   const [form, setForm] = useState({ name: user?.name ?? '', clinicName: user?.clinicName ?? '', phone: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [upgrading, setUpgrading] = useState(false);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!user?.clinicId) { setSaveError('Aguarde o carregamento da conta.'); return; }
     setSaving(true);
+    setSaveError('');
     try {
       const { supabase } = await import('@/lib/supabase');
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return;
-      await supabase.from('users').update({ nome: form.name }).eq('auth_id', uid);
-      if (user?.role === 'admin' && form.clinicName) {
-        await supabase.from('clinics').update({ nome: form.clinicName }).eq('id', user.clinicId);
+      const { error: userErr } = await supabase.from('users').update({ nome: form.name }).eq('auth_id', uid);
+      if (userErr) { setSaveError(userErr.message); return; }
+      if (user.role === 'admin' && form.clinicName) {
+        const { error: clinicErr } = await supabase.from('clinics').update({ nome: form.clinicName }).eq('id', user.clinicId);
+        if (clinicErr) { setSaveError(clinicErr.message); return; }
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleUpgrade(plano: string) {
+    if (!user) return;
+    setUpgrading(true);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ plano, clinic_id: user.clinicId, email: user.email }),
+      });
+      const result = await res.json();
+      if (result.url) window.location.href = result.url;
+      else alert('Erro ao iniciar pagamento: ' + (result.error ?? 'Tente novamente'));
+    } finally {
+      setUpgrading(false);
     }
   }
 
@@ -91,6 +116,11 @@ export default function ContaScreen() {
               <button type="submit" disabled={saving} className="btn-p" style={{ marginTop: 4 }}>
                 {saved ? '✓ Salvo!' : saving ? 'Salvando...' : 'Salvar alterações'}
               </button>
+              {saveError && (
+                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, color: '#f87171', fontSize: 13 }}>
+                  {saveError}
+                </div>
+              )}
             </form>
           </div>
         )}
@@ -116,16 +146,28 @@ export default function ContaScreen() {
               </div>
             </div>
 
-            {user?.plan !== 'pro' && (
-              <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 22px' }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--t1)', marginBottom: 6 }}>Fazer upgrade para Clínica</div>
-                <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 16 }}>Pacientes ilimitados, Reavix AI, BI avançado e muito mais.</div>
-                <button
-                  onClick={() => window.open('https://wa.me/5511999999999?text=Quero+fazer+upgrade+do+plano', '_blank')}
-                  className="btn-p"
-                >
-                  Falar com vendas →
-                </button>
+            {user?.plan !== 'pro' && user?.plan !== 'enterprise' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[
+                  { key: 'basico', name: 'Básico', price: 'R$ 149/mês', desc: 'Até 10 pacientes, agenda, financeiro e portal da família', highlight: false },
+                  { key: 'profissional', name: 'Pro', price: 'R$ 299/mês', desc: 'Pacientes ilimitados, BI avançado, assistente AI e equipe ilimitada', highlight: true },
+                ].map((p) => (
+                  <div key={p.key} style={{ background: p.highlight ? 'var(--ps)' : 'var(--sf)', border: `1px solid ${p.highlight ? 'var(--p)' : 'var(--bdr)'}`, borderRadius: 'var(--r)', padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      {p.highlight && <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--p)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Recomendado</div>}
+                      <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--t1)' }}>{p.name} <span style={{ fontSize: 14, color: 'var(--p)', fontWeight: 700 }}>{p.price}</span></div>
+                      <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 4 }}>{p.desc}</div>
+                    </div>
+                    <button
+                      onClick={() => handleUpgrade(p.key)}
+                      disabled={upgrading}
+                      className="btn-p"
+                      style={{ flexShrink: 0, minWidth: 140 }}
+                    >
+                      {upgrading ? 'Aguarde...' : `Assinar ${p.name} →`}
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -138,9 +180,13 @@ export default function ContaScreen() {
               <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 16 }}>Enviaremos um link de redefinição para o seu e-mail.</div>
               <button
                 onClick={async () => {
-                  const { supabase } = await import('@/lib/supabase');
-                  await supabase.auth.resetPasswordForEmail(user?.email ?? '');
-                  alert('E-mail de redefinição enviado!');
+                  const res = await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: user?.email }),
+                  });
+                  if (res.ok) alert('E-mail de redefinição enviado! Verifique sua caixa de entrada.');
+                  else alert('Erro ao enviar. Tente novamente.');
                 }}
                 style={{ padding: '10px 20px', border: '1px solid var(--p)', borderRadius: 10, background: 'none', color: 'var(--p)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
               >

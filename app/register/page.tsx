@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
-type Step = 'tipo' | 'dados' | 'senha' | 'confirmar';
+type Step = 'tipo' | 'dados' | 'senha' | 'confirmar' | 'invite';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +16,35 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [invitePassword, setInvitePassword] = useState('');
+  const [inviteConfirm, setInviteConfirm] = useState('');
+
+  // Detecta chegada via link de convite (Supabase seta sessão automaticamente)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
+        // Se o usuário veio via convite, ainda não tem senha — mostra form de criação de senha
+        const meta = session.user.user_metadata;
+        if (meta?.invited_at || !session.user.last_sign_in_at || step === 'tipo') {
+          setStep('invite');
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleInvitePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (invitePassword.length < 6) { setError('A senha deve ter pelo menos 6 caracteres'); return; }
+    if (invitePassword !== inviteConfirm) { setError('As senhas não coincidem'); return; }
+    setLoading(true);
+    setError('');
+    const { error: err } = await supabase.auth.updateUser({ password: invitePassword });
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    router.push('/dashboard');
+  }
 
   function update(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -291,7 +320,37 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {step !== 'confirmar' && (
+            {step === 'invite' && (
+              <div>
+                <h1 className="l-title">Criar sua senha</h1>
+                <p className="l-sub">Você foi convidado! Escolha uma senha para acessar a plataforma.</p>
+                <form onSubmit={handleInvitePassword}>
+                  <div className="l-field">
+                    <label className="l-lbl">Nova senha *</label>
+                    <input className="l-inp" type="password" placeholder="Mínimo 6 caracteres"
+                      value={invitePassword} onChange={e => { setInvitePassword(e.target.value); setError(''); }} required autoFocus />
+                  </div>
+                  <div className="l-field">
+                    <label className="l-lbl">Confirmar senha *</label>
+                    <input className="l-inp" type="password" placeholder="Repita a senha"
+                      value={inviteConfirm} onChange={e => { setInviteConfirm(e.target.value); setError(''); }} required />
+                  </div>
+                  {error && (
+                    <div className="l-err">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      {error}
+                    </div>
+                  )}
+                  <button type="submit" className="l-btn" disabled={loading} style={{ width: '100%' }}>
+                    {loading ? 'Salvando...' : 'Acessar plataforma →'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {step !== 'confirmar' && step !== 'invite' && (
               <div className="l-ftr" style={{ marginTop: 20 }}>
                 Já tem conta? <Link href="/login">Entrar</Link>
               </div>
