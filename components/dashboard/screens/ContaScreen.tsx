@@ -158,14 +158,9 @@ export default function ContaScreen() {
                       <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--t1)' }}>{p.name} <span style={{ fontSize: 14, color: 'var(--p)', fontWeight: 700 }}>{p.price}</span></div>
                       <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 4 }}>{p.desc}</div>
                     </div>
-                    <button
-                      onClick={() => handleUpgrade(p.key)}
-                      disabled={upgrading}
-                      className="btn-p"
-                      style={{ flexShrink: 0, minWidth: 140 }}
-                    >
-                      {upgrading ? 'Aguarde...' : `Assinar ${p.name} →`}
-                    </button>
+                    <div style={{ flexShrink: 0, minWidth: 140, padding: '10px 20px', borderRadius: 'var(--r)', background: 'var(--sf2)', border: '1px solid var(--bdr)', color: 'var(--t3)', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
+                      Em breve
+                    </div>
                   </div>
                 ))}
               </div>

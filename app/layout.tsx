@@ -42,8 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Speed Insights — Vercel (vanilla script, funciona sem Next.js SDK) */}
         <script defer src="/_vercel/speed-insights/script.js" />
-        {/* Stripe */}
-        <script src="https://js.stripe.com/v3/" async />
+        {/* Stripe — desativado temporariamente */}
+        {/* <script src="https://js.stripe.com/v3/" async /> */}
       </head>
       <body>
         {children}
