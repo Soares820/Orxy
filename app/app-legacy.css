@@ -193,6 +193,9 @@ body[data-theme="dark"]{background:#0D1117}
 .sidebar.collapsed .p-menu-ico{opacity:0;width:0}
 
 /* ââ TOPBAR ââ */
+.app-layout{display:flex;height:100vh;overflow:hidden;background:var(--bg)}
+.screen-content{flex:1;overflow-y:auto;background:var(--bg)}
+.screen-content::-webkit-scrollbar{width:6px}.screen-content::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:6px}
 .main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .topbar{height:58px;background:#FFFFFF;border-bottom:1px solid #E8ECF4;display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 [data-theme="dark"] .topbar{background:#161B27;border-bottom:1px solid rgba(255,255,255,.07);box-shadow:0 1px 3px rgba(0,0,0,.25)}
@@ -1378,3 +1381,33 @@ select.reg-inp option{background:#0F1829;color:#fff}
 
 /*    SPIN ANIMATION    */
 .spin-anim{animation:spin .8s linear infinite}
+
+/* MOBILE RESPONSIVE — dashboard */
+@media(max-width:768px){
+  .topbar{padding:0 12px;height:52px}
+  .tb-brand-sub,.tb-sub{display:none}
+  .tb-div{display:none}
+  .tb-lbl{display:none}
+  .tb-btn{padding:7px 9px}
+  .page-body{padding:14px;gap:12px}
+  .g2,.g3,.g4,.g-70-30{grid-template-columns:1fr}
+  .dash-content{padding:20px 14px 20px}
+  .dash-tiles{grid-template-columns:1fr 1fr}
+  .dash-greet-h{font-size:28px}
+  .dash-stats{gap:10px}
+  .dash-stat{min-width:0;flex:1}
+  .kpi-val{font-size:22px}
+  .fin-kpi-grid{grid-template-columns:1fr 1fr}
+  .agenda-layout{grid-template-columns:1fr}
+  .card{padding:16px}
+  .card-head{flex-wrap:wrap;gap:8px}
+  .ph-title{font-size:20px}
+  .rowb{flex-wrap:wrap}
+}
+@media(max-width:420px){
+  .dash-tiles{grid-template-columns:1fr}
+  .tb-brand-name{font-size:12px}
+  .topbar{padding:0 10px}
+  .dash-greet-h{font-size:24px}
+  .exec-action-btns{gap:7px}
+}

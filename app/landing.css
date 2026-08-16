@@ -196,4 +196,27 @@
 .lp-foot-l{display:flex;align-items:center;gap:10px}
 .lp-foot-link{font-size:12px;color:rgba(255,255,255,.22);cursor:pointer;transition:color .18s;font-weight:500;background:none;border:none;font-family:inherit}
 .lp-foot-link:hover{color:rgba(255,255,255,.55)}
-@media(max-width:680px){.lp-foot-in{flex-direction:column;gap:28px}.lp-foot-brand{max-width:100%}.lp-foot-links{gap:28px}}
+@media(max-width:680px){.lp-foot-in{flex-direction:column;gap:28px}.lp-foot-brand{max-width:100%}.lp-foot-links{gap:28px}}
+/* HAMBURGER + MOBILE NAV */
+.lp-ham{display:none;flex-direction:column;justify-content:center;gap:5px;width:40px;height:40px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);cursor:pointer;padding:10px 11px;flex-shrink:0;transition:background .18s}
+.lp-ham:hover{background:rgba(255,255,255,.12)}
+.lp-ham-line{display:block;width:100%;height:1.5px;background:#fff;border-radius:2px;transition:all .22s}
+.lp-nav-cta-desk{display:block}
+
+.lp-mob-nav{position:fixed;inset:0;z-index:9999;background:rgba(4,8,20,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.lp-mob-inner{position:absolute;top:68px;right:0;left:0;background:rgba(8,14,32,.97);border-bottom:1px solid rgba(255,255,255,.08);padding:16px 20px 24px;display:flex;flex-direction:column;gap:4px;animation:fadeIn .18s ease}
+.lp-mob-link{background:none;border:none;color:rgba(255,255,255,.75);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;padding:12px 10px;border-radius:10px;text-align:left;transition:all .15s}
+.lp-mob-link:hover{background:rgba(255,255,255,.07);color:#fff}
+.lp-mob-divider{height:1px;background:rgba(255,255,255,.08);margin:8px 0}
+.lp-mob-cta{width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.13);color:rgba(255,255,255,.82);text-align:center}
+.lp-mob-cta-p{background:linear-gradient(135deg,#6D28D9,#06B6D4);border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(109,40,217,.4)}
+.lp-mob-cta:hover{opacity:.88}
+
+@media(max-width:860px){
+  .lp-ham{display:flex}
+  .lp-nav-cta-desk{display:none}
+}
+@media(max-width:420px){
+  .lp-logo-tag{display:none}
+  .lp-nav-login{padding:7px 13px;font-size:12px}
+}
