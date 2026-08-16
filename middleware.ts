@@ -22,10 +22,23 @@ function getIp(req: NextRequest): string {
   );
 }
 
+// Cookie name set by Supabase client (matches project ref from NEXT_PUBLIC_SUPABASE_URL)
+const SUPABASE_COOKIE_PREFIX = 'sb-';
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Só aplica em API routes
+  // Guard: /dashboard requer sessão Supabase via cookie
+  if (pathname.startsWith('/dashboard')) {
+    const hasSession = [...request.cookies.getAll()].some(
+      (c) => c.name.startsWith(SUPABASE_COOKIE_PREFIX) && c.name.endsWith('-auth-token')
+    );
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+  }
+
+  // Só aplica rate-limit em API routes
   if (!pathname.startsWith('/api/')) return NextResponse.next();
 
   // Rotas excluídas (Stripe webhook etc.)
@@ -72,5 +85,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/dashboard/:path*', '/dashboard'],
 };
