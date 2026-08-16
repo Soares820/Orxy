@@ -7,7 +7,7 @@ import LandingFooter from '@/components/landing/LandingFooter';
 import './landing.css';
 
 export const metadata: Metadata = {
-  title: 'T.O Plataforma — Software para Terapia ABA',
+  title: 'ORYX — Software para Terapia ABA',
 };
 
 const STATS = [

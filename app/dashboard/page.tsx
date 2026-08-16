@@ -20,7 +20,7 @@ import AvaliacoesScreen from '@/components/dashboard/screens/AvaliacoesScreen';
 import QuestionariosScreen from '@/components/dashboard/screens/QuestionariosScreen';
 
 const SCREEN_META: Record<Screen, { title: string; sub: string }> = {
-  dashboard: { title: 'Início', sub: 'Bem-vindo(a) à plataforma T.O' },
+  dashboard: { title: 'Início', sub: 'Bem-vindo(a) ao ORYX' },
   pacientes: { title: 'Pacientes', sub: 'Cadastro e fichas individuais' },
   pei: { title: 'Atividades', sub: 'Programas e execução DTT' },
   avaliacoes: { title: 'Avaliações', sub: 'PEDI, SPM, ABLLS, VBMAPP' },
@@ -55,10 +55,10 @@ function Topbar({
       <div className="tb-l">
         <button className="tb-brand" onClick={() => onNav(user?.role === 'familia' ? 'portal' : 'dashboard')}>
           <div className="tb-mark-sm">
-            <Image src="/logo.svg" alt="T.O" width={34} height={34} style={{ objectFit: 'contain' }} />
+            <Image src="/logo.png" alt="ORYX" width={34} height={34} style={{ objectFit: 'contain', borderRadius: 6 }} />
           </div>
           <div className="tb-brand-txt">
-            <span className="tb-brand-name">T.O Plataforma</span>
+            <span className="tb-brand-name">ORYX</span>
             <span className="tb-brand-sub">{user?.role === 'familia' ? 'Sistema TEA' : 'Sistema Clínico'}</span>
           </div>
         </button>

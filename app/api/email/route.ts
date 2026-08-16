@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
   type Template = { subject: string; html: string };
   const templates: Record<string, Template> = {
     welcome: {
-      subject: `Bem-vindo(a) à T.O Plataforma, ${firstName}! 🎉`,
+      subject: `Bem-vindo(a) à ORYX, ${firstName}! 🎉`,
       html: `<div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;background:#0D1526;color:#fff;border-radius:16px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#2563EB,#7C3AED);padding:32px 28px;text-align:center">
-          <div style="font-size:28px;font-weight:900;letter-spacing:-1px">T.O Plataforma</div>
+          <div style="font-size:28px;font-weight:900;letter-spacing:-1px">ORYX</div>
           <div style="font-size:13px;opacity:.8;margin-top:4px">Software para Terapia ABA</div>
         </div>
         <div style="padding:32px 28px">
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
           </div>
           <a href="${appUrl}" style="display:block;background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none">Acessar o sistema →</a>
         </div>
-        <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.4);text-align:center">T.O Plataforma · Suporte: suporte@vero.app</div>
+        <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.4);text-align:center">ORYX · Suporte: suporte@vero.app</div>
       </div>`,
     },
     trial_ending: {
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'T.O Plataforma <noreply@vero.app>', to: [to], subject: tpl.subject, html: tpl.html }),
+      body: JSON.stringify({ from: 'ORYX <noreply@vero.app>', to: [to], subject: tpl.subject, html: tpl.html }),
     });
     const responseData = await r.json() as { id?: string; message?: string };
     if (!r.ok) throw new Error(responseData.message ?? 'Resend error');

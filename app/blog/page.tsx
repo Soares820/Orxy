@@ -63,9 +63,9 @@ export default function BlogPage() {
       {/* NAV */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--bg)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <Image src="/logo.svg" alt="T.O Plataforma" width={36} height={36} style={{ borderRadius: 10 }} />
+          <Image src="/logo.png" alt="ORYX" width={36} height={36} style={{ borderRadius: 10, overflow: 'hidden' }} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.3px' }}>T.O Plataforma</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-.3px' }}>ORYX</div>
             <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--accent)', letterSpacing: '.5px', textTransform: 'uppercase' }}>Blog Científico</div>
           </div>
         </Link>
@@ -164,7 +164,7 @@ export default function BlogPage() {
       {/* FOOTER */}
       <footer style={{ borderTop: '1px solid var(--border)', padding: '28px 24px', textAlign: 'center', fontSize: 12, color: 'var(--muted)' }}>
         <p>Conteúdo gerado automaticamente com base em publicações do <a href="https://pubmed.ncbi.nlm.nih.gov" target="_blank" rel="noopener" style={{ color: 'var(--accent)', textDecoration: 'none' }}>PubMed</a>, sumarizado por IA e contextualizado para a realidade brasileira. Não substitui orientação clínica profissional.</p>
-        <p style={{ marginTop: 8 }}><Link href="/" style={{ color: 'var(--accent)', textDecoration: 'none' }}>T.O Plataforma</Link> · <Link href="/wiki" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Manual</Link></p>
+        <p style={{ marginTop: 8 }}><Link href="/" style={{ color: 'var(--accent)', textDecoration: 'none' }}>ORYX</Link> · <Link href="/wiki" style={{ color: 'var(--accent)', textDecoration: 'none' }}>Manual</Link></p>
       </footer>
 
       {/* MODAL */}

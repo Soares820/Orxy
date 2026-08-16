@@ -126,7 +126,7 @@ export default function PortalScreen({ onNav }: Props) {
           )}
           <h1 className="dash-greet-h">Olá, Família!</h1>
           <p className="dash-greet-sub">
-            Bem-vinda à T.O Plataforma.{' '}
+            Bem-vinda ao ORYX.{' '}
             {myChild ? <><strong>{myChild.name}</strong> tem evoluído muito — acompanhe o progresso {myChild.sex === 'F' ? 'dela' : 'dele'} por aqui.</> : 'Acompanhe o progresso do seu filho por aqui.'}
           </p>
         </div>

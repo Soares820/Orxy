@@ -83,13 +83,13 @@ export async function POST(req: NextRequest) {
       const html = `
         <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;background:#0D1526;color:#fff;border-radius:16px;overflow:hidden">
           <div style="background:linear-gradient(135deg,#2563EB,#7C3AED);padding:32px 28px;text-align:center">
-            <div style="font-size:24px;font-weight:900">T.O Plataforma</div>
+            <div style="font-size:24px;font-weight:900">ORYX</div>
             <div style="font-size:13px;opacity:.8;margin-top:4px">Você foi convidado!</div>
           </div>
           <div style="padding:32px 28px">
             <h2 style="font-size:20px;font-weight:800;margin:0 0 12px">Olá, ${safeName.split(' ')[0]}!</h2>
             <p style="color:rgba(255,255,255,.75);line-height:1.6;margin:0 0 20px">
-              <strong>${safeBy}</strong> convidou você para acessar a T.O Plataforma como <strong>${safeCargo}</strong>.
+              <strong>${safeBy}</strong> convidou você para acessar a ORYX como <strong>${safeCargo}</strong>.
             </p>
             <p style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:24px">Clique abaixo para criar sua senha e acessar o sistema.</p>
             <a href="${inviteUrl}" style="display:block;background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none">Aceitar convite e criar senha →</a>
@@ -97,11 +97,11 @@ export async function POST(req: NextRequest) {
           </div>
         </div>`;
 
-      const fromAddr = process.env.RESEND_FROM ?? 'T.O Plataforma <onboarding@resend.dev>';
+      const fromAddr = process.env.RESEND_FROM ?? 'ORYX <onboarding@resend.dev>';
       const resendResp = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: fromAddr, to: [email], subject: 'Você foi convidado para a T.O Plataforma', html }),
+        body: JSON.stringify({ from: fromAddr, to: [email], subject: 'Você foi convidado para a ORYX', html }),
       });
       if (!resendResp.ok) {
         const resendErr = await resendResp.json().catch(() => ({}));

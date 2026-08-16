@@ -17,11 +17,11 @@ export default function TermosPage() {
         {[
           {
             title: '1. Aceitação dos termos',
-            text: 'Ao criar uma conta ou usar a T.O Plataforma, você concorda com estes Termos de Uso e nossa Política de Privacidade. Se não concordar, não utilize o serviço.',
+            text: 'Ao criar uma conta ou usar a ORYX, você concorda com estes Termos de Uso e nossa Política de Privacidade. Se não concordar, não utilize o serviço.',
           },
           {
             title: '2. Descrição do serviço',
-            text: 'A T.O Plataforma é um software de gestão clínica destinado exclusivamente a profissionais de saúde e clínicas que atendem pessoas com Transtorno do Espectro Autista (TEA). O serviço inclui módulos de agenda, gestão de pacientes, PEI, financeiro, BI e assistente de IA (Reavix).',
+            text: 'A ORYX é um software de gestão clínica destinado exclusivamente a profissionais de saúde e clínicas que atendem pessoas com Transtorno do Espectro Autista (TEA). O serviço inclui módulos de agenda, gestão de pacientes, PEI, financeiro, BI e assistente de IA (Reavix).',
           },
           {
             title: '3. Responsabilidades do usuário',
@@ -29,7 +29,7 @@ export default function TermosPage() {
           },
           {
             title: '4. Uso do Reavix AI',
-            text: 'A ferramenta Reavix AI utiliza inteligência artificial para auxiliar profissionais de saúde. As respostas geradas são de natureza informativa e não substituem o julgamento clínico profissional. O usuário é inteiramente responsável pelas decisões clínicas tomadas. A T.O Plataforma não se responsabiliza por diagnósticos, tratamentos ou intervenções baseados no conteúdo gerado pela IA.',
+            text: 'A ferramenta Reavix AI utiliza inteligência artificial para auxiliar profissionais de saúde. As respostas geradas são de natureza informativa e não substituem o julgamento clínico profissional. O usuário é inteiramente responsável pelas decisões clínicas tomadas. A ORYX não se responsabiliza por diagnósticos, tratamentos ou intervenções baseados no conteúdo gerado pela IA.',
           },
           {
             title: '5. Planos e pagamentos',
@@ -37,11 +37,11 @@ export default function TermosPage() {
           },
           {
             title: '6. Propriedade intelectual',
-            text: 'Todo o conteúdo, código e tecnologia da T.O Plataforma são protegidos por direitos autorais e pertencem exclusivamente à T.O Plataforma. Os dados inseridos pelos usuários pertencem aos próprios usuários. A T.O Plataforma não reivindica propriedade sobre dados de pacientes ou conteúdo clínico criado pelos profissionais.',
+            text: 'Todo o conteúdo, código e tecnologia da ORYX são protegidos por direitos autorais e pertencem exclusivamente à ORYX. Os dados inseridos pelos usuários pertencem aos próprios usuários. A ORYX não reivindica propriedade sobre dados de pacientes ou conteúdo clínico criado pelos profissionais.',
           },
           {
             title: '7. Limitação de responsabilidade',
-            text: 'A T.O Plataforma é fornecida "como está". Não garantimos disponibilidade ininterrupta do serviço. Nossa responsabilidade está limitada ao valor pago pelo serviço nos 3 meses anteriores ao evento causador do dano. Não nos responsabilizamos por danos indiretos ou consequenciais.',
+            text: 'A ORYX é fornecida "como está". Não garantimos disponibilidade ininterrupta do serviço. Nossa responsabilidade está limitada ao valor pago pelo serviço nos 3 meses anteriores ao evento causador do dano. Não nos responsabilizamos por danos indiretos ou consequenciais.',
           },
           {
             title: '8. Rescisão',
@@ -53,7 +53,7 @@ export default function TermosPage() {
           },
           {
             title: '10. Contato',
-            text: 'Para dúvidas sobre estes termos: suporte@to-plataforma.com.br',
+            text: 'Para dúvidas sobre estes termos: suporte@oryxsoftware.com.br',
           },
         ].map((s) => (
           <section key={s.title} style={{ marginBottom: 32 }}>

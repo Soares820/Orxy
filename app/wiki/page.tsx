@@ -70,7 +70,7 @@ export default function WikiPage() {
               <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#1c3d7a,#3B82F6)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>T.O Plataforma</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>ORYX</span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--t4)' }}>Manual do Sistema v1.0</div>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, color: 'var(--t3)', textDecoration: 'none' }}>
@@ -96,7 +96,7 @@ export default function WikiPage() {
           <div style={{ background: 'linear-gradient(135deg,#060C18 0%,#0F2040 50%,#1c3d7a 100%)', padding: '52px 48px 44px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 70% 50%,rgba(59,130,246,0.18) 0%,transparent 70%)' }} />
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 20, padding: '3px 10px', fontSize: 10, fontWeight: 600, color: '#93C5FD', letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 16, position: 'relative' }}>
-              T.O Plataforma · Manual do Sistema
+              ORYX · Manual do Sistema
             </div>
             <h1 style={{ fontSize: 32, fontWeight: 800, color: '#F1F5F9', lineHeight: 1.15, letterSpacing: '-.4px', marginBottom: 10, position: 'relative' }}>
               Tudo que você precisa saber<br />para usar o sistema <span style={{ color: '#60A5FA' }}>com confiança</span>
@@ -112,7 +112,7 @@ export default function WikiPage() {
           {/* CONTENT */}
           <div style={{ padding: '40px 48px', maxWidth: 880 }}>
 
-            <Section id="visao-geral" tag="Visão Geral" title="O que é o T.O Plataforma?" desc="Sistema SaaS de gestão clínica para clínicas de Terapia Ocupacional e ABA/TEA no Brasil.">
+            <Section id="visao-geral" tag="Visão Geral" title="O que é o ORYX?" desc="Sistema SaaS de gestão clínica para clínicas de Terapia Ocupacional e ABA/TEA no Brasil.">
               <InfoBox>O sistema tem <strong>dois tipos de usuário</strong>: <strong>Clínica</strong> (equipe interna — admin, terapeuta, secretaria, financeiro) e <strong>Família</strong> (responsáveis). Cada perfil vê apenas o que é relevante para ele.</InfoBox>
               <ModGrid>
                 <Mod icon="ib" title="Perfil Clínica" sub="Gestão completa da operação" items={['Cadastro de pacientes e prontuários','Agenda e controle de sessões','Gestão financeira e contratos','BI com indicadores operacionais','Gerenciamento da equipe']} />

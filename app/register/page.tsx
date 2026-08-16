@@ -128,7 +128,7 @@ export default function RegisterPage() {
 
         <div className="l-visual-center">
           <div className="l-visual-art">
-            <Image src="/logo.svg" alt="T.O Plataforma" width={72} height={72} style={{ filter: 'drop-shadow(0 0 20px rgba(59,130,246,.6))' }} />
+            <Image src="/logo.png" alt="ORYX" width={72} height={72} style={{ objectFit: 'contain', borderRadius: 14 }} />
           </div>
           <div className="l-visual-nm">14 dias grátis</div>
           <div className="l-visual-sub">Sem cartão de crédito · Cancele quando quiser</div>
@@ -155,10 +155,10 @@ export default function RegisterPage() {
           <div className="lbox-inner">
             <div className="l-brand">
               <div className="l-mark">
-                <Image src="/logo.svg" alt="T.O" width={50} height={50} style={{ objectFit: 'contain' }} />
+                <Image src="/logo.png" alt="ORYX" width={50} height={50} style={{ objectFit: 'contain', borderRadius: 8 }} />
               </div>
               <div>
-                <div className="l-brand-name">T.O Plataforma</div>
+                <div className="l-brand-name">ORYX</div>
                 <div className="l-brand-tag">Criar conta grátis</div>
               </div>
             </div>
