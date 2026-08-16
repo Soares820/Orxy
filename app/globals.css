@@ -4,20 +4,20 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* Brand colors */
-  --p: #2563EB;  --pd: #1D4ED8;  --pl: #3B82F6;
-  --ps: rgba(37,99,235,.07);  --pb: rgba(37,99,235,.15);
+  /* Brand colors — ORYX: roxo→ciano */
+  --p: #6D28D9;  --pd: #5B21B6;  --pl: #8B5CF6;
+  --ps: rgba(109,40,217,.07);  --pb: rgba(109,40,217,.15);
   --s: #059669;  --ss: rgba(5,150,105,.07);  --sb: rgba(5,150,105,.15);
   --w: #D97706;  --ws: rgba(217,119,6,.07);  --wb: rgba(217,119,6,.15);
   --d: #DC2626;  --ds: rgba(220,38,38,.07);  --db: rgba(220,38,38,.15);
-  --v: #7C3AED;  --vs: rgba(124,58,237,.07);  --vb: rgba(124,58,237,.15);
+  --v: #06B6D4;  --vs: rgba(6,182,212,.07);  --vb: rgba(6,182,212,.15);
   --o: #EA580C;  --os: rgba(234,88,12,.07);   --ob: rgba(234,88,12,.15);
 
-  /* Surfaces */
-  --bg: #F4F7FD;
+  /* Surfaces — fundo lavanda leve da marca */
+  --bg: #ECEEF8;
   --sf: #FFFFFF;
-  --sf2: #F7F9FF;
-  --sf3: #EEF3FF;
+  --sf2: #F5F4FF;
+  --sf3: #EDE9FE;
   --bdr: rgba(15,23,42,.07);
   --bdr2: rgba(15,23,42,.12);
 
@@ -32,13 +32,13 @@
   --sh: 0 2px 6px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.07);
   --sh-lg: 0 4px 12px rgba(0,0,0,.06), 0 16px 40px rgba(0,0,0,.09);
   --sh-xl: 0 8px 20px rgba(0,0,0,.08), 0 28px 60px rgba(0,0,0,.12);
-  --sh-p: 0 8px 28px rgba(14,165,233,.38);
+  --sh-p: 0 8px 28px rgba(109,40,217,.38);
   --sh-d: 0 8px 28px rgba(220,38,38,.32);
   --sh-s: 0 8px 28px rgba(5,150,105,.32);
 
   /* Layout */
   --sw: 260px;  --r: 16px;  --rsm: 10px;  --rxs: 7px;
-  --grd: linear-gradient(135deg, #0EA5E9 0%, #8B5CF6 100%);
+  --grd: linear-gradient(135deg, #6D28D9 0%, #06B6D4 100%);
 
   /* Font */
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
