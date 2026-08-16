@@ -144,7 +144,7 @@ export default function LoginPage() {
               <circle cx="140" cy="111" r="3" fill="#3B82F6" opacity=".7"/>
             </svg>
           </div>
-          <div className="l-visual-nm">T.O Plataforma</div>
+          <div className="l-visual-nm">ORYX</div>
           <div className="l-visual-sub">Gestão clínica para clínicas de TEA</div>
           <div className="l-visual-divider" />
           <div className="l-visual-feats">
@@ -170,7 +170,7 @@ export default function LoginPage() {
           <div className="lbox-inner">
             {/* Logo centrado */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 20 }}>
-              <Image src="/logo.svg" alt="Software para Terapia ABA" width={80} height={80} style={{ objectFit: 'contain' }} />
+              <Image src="/logo.png" alt="ORYX" width={80} height={80} style={{ objectFit: 'contain', borderRadius: 14 }} />
             </div>
 
             <div className="l-title">Bem-vindo de volta</div>
@@ -296,7 +296,7 @@ export default function LoginPage() {
             </div>
 
             <div className="l-ftr">
-              © 2026 Software para Terapia ABA ·{' '}
+              © 2026 ORYX ·{' '}
               <Link href="/termos" style={{ color: 'rgba(255,255,255,.3)' }}>Termos de Uso</Link>
               {' '}·{' '}
               <Link href="/privacidade" style={{ color: 'rgba(255,255,255,.3)' }}>Privacidade</Link>

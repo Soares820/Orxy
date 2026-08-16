@@ -29,15 +29,15 @@ export default function LandingFooter() {
           </div>
           <div>
             <div className="lp-foot-ttl">Empresa</div>
-            <a href="#sobre">Sobre nós</a>
-            <a href="mailto:contato@toplataforma.com.br">Contato</a>
-            <a href="https://wa.me/5511999999999" target="_blank" rel="noopener">WhatsApp</a>
+            <a onClick={() => document.getElementById('lp-features')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>Sobre nós</a>
+            <a href="mailto:contato@oryxsoftware.com.br">Contato</a>
+            <a href="https://wa.me/5541999177922" target="_blank" rel="noopener">WhatsApp</a>
           </div>
           <div>
             <div className="lp-foot-ttl">Legal</div>
             <Link href="/termos">Termos de Uso</Link>
             <Link href="/privacidade">Privacidade</Link>
-            <a href="#lgpd">LGPD</a>
+            <Link href="/privacidade#lgpd">LGPD</Link>
           </div>
         </div>
       </div>

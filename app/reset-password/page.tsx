@@ -72,10 +72,10 @@ export default function ResetPasswordPage() {
         margin: '0 auto',
       }}>
         <Link href="/login" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32, textDecoration: 'none' }}>
-          <div className="lp-logo-mark" style={{ width: 36, height: 36, borderRadius: 10 }}>
-            <Image src="/logo.svg" alt="T.O Plataforma" width={36} height={36} style={{ objectFit: 'contain' }} />
+          <div className="lp-logo-mark" style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden' }}>
+            <Image src="/logo.png" alt="ORYX" width={36} height={36} style={{ objectFit: 'contain' }} />
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>T.O Plataforma</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>ORYX</span>
         </Link>
 
         {mode === 'request' && (

@@ -9,7 +9,7 @@ function buildEmailHtml(recoveryUrl: string, email: string): string {
   return `
     <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;background:#0D1526;color:#fff;border-radius:16px;overflow:hidden">
       <div style="background:linear-gradient(135deg,#2563EB,#7C3AED);padding:28px;text-align:center">
-        <div style="font-size:22px;font-weight:900">T.O Plataforma</div>
+        <div style="font-size:22px;font-weight:900">ORYX</div>
         <div style="font-size:12px;opacity:.8;margin-top:4px">Redefinição de senha</div>
       </div>
       <div style="padding:28px">
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // Envia via Resend se disponível
   if (process.env.RESEND_API_KEY) {
-    const fromAddr = process.env.RESEND_FROM ?? 'T.O Plataforma <onboarding@resend.dev>';
+    const fromAddr = process.env.RESEND_FROM ?? 'ORYX <onboarding@resend.dev>';
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: fromAddr,
         to: [email],
-        subject: 'Redefinir sua senha — T.O Plataforma',
+        subject: 'Redefinir sua senha — ORYX',
         html: buildEmailHtml(recoveryUrl, email),
       }),
     });
