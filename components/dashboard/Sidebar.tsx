@@ -64,7 +64,7 @@ export default function Sidebar({ active, onNav, dark, onToggleTheme }: SidebarP
       {/* Logo */}
       <div className="sb-logo">
         <div className="sb-mark">
-          <Image src="/logo.svg" alt="T.O Plataforma" width={40} height={40} style={{ objectFit: 'contain' }} />
+          <Image src="/logo.png" alt="ORYX" width={40} height={40} style={{ objectFit: 'contain', borderRadius: 8 }} />
         </div>
         <div className="sb-info">
           <div className="sb-name">{user?.clinicName || 'Software ABA'}</div>

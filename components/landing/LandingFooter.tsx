@@ -9,10 +9,10 @@ export default function LandingFooter() {
       <div className="lp-foot-in">
         <div className="lp-foot-brand">
           <div className="lp-foot-logo">
-            <div className="lp-logo-mark" style={{ width: 30, height: 30, borderRadius: 8 }}>
-              <Image src="/logo.svg" alt="T.O Plataforma" width={30} height={30} style={{ objectFit: 'contain' }} />
+            <div className="lp-logo-mark" style={{ width: 36, height: 36, borderRadius: 8, overflow: 'hidden' }}>
+              <Image src="/logo.png" alt="ORYX" width={36} height={36} style={{ objectFit: 'contain' }} />
             </div>
-            <span className="lp-foot-txt">T.O Plataforma</span>
+            <span className="lp-foot-txt">ORYX</span>
           </div>
           <p className="lp-foot-desc">
             Software de gestão clínica especializado em TEA e Terapia Ocupacional. Desenvolvido no Brasil para clínicas brasileiras.
@@ -43,7 +43,7 @@ export default function LandingFooter() {
       </div>
 
       <div className="lp-foot-bot">
-        <span>© {new Date().getFullYear()} T.O Plataforma. Todos os direitos reservados.</span>
+        <span>© {new Date().getFullYear()} ORYX. Todos os direitos reservados.</span>
         <span className="lp-foot-cert">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />

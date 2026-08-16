@@ -14,11 +14,11 @@ export default function LandingNav() {
     <nav className="lp-nav">
       <button className="lp-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
         <div className="lp-logo-mark">
-          <Image src="/logo.svg" alt="T.O Plataforma" width={40} height={40} style={{ objectFit: 'contain' }} />
+          <Image src="/logo.png" alt="ORYX" width={44} height={44} style={{ objectFit: 'contain', borderRadius: 8 }} />
         </div>
         <div>
-          <div className="lp-logo-name">Software para Terapia ABA</div>
-          <div className="lp-logo-tag">Sistema Clínico</div>
+          <div className="lp-logo-name">ORYX</div>
+          <div className="lp-logo-tag">Software para TEA · ABA</div>
         </div>
       </button>
 

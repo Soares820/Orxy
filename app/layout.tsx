@@ -5,19 +5,19 @@ import ToastContainer from '@/components/ui/Toast';
 
 export const metadata: Metadata = {
   title: {
-    default: 'T.O Plataforma — Software para Terapia ABA',
-    template: '%s | T.O Plataforma',
+    default: 'ORYX — Software para Terapia ABA',
+    template: '%s | ORYX',
   },
   description:
     'Plataforma de gestão clínica completa para terapeutas que atendem TEA. Avaliações PEDI, PEI inteligente, BI em tempo real e comunicação com famílias.',
   keywords: ['ABA', 'TEA', 'autismo', 'terapia ocupacional', 'software clínico', 'PEDI', 'PEI'],
-  authors: [{ name: 'T.O Plataforma' }],
+  authors: [{ name: 'ORYX' }],
   robots: { index: true, follow: true },
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    siteName: 'T.O Plataforma',
-    title: 'T.O Plataforma — Software para Terapia ABA',
+    siteName: 'ORYX',
+    title: 'ORYX — Software para Terapia ABA',
     description: 'Plataforma de gestão clínica completa para terapeutas que atendem TEA.',
   },
   manifest: '/manifest.json',
