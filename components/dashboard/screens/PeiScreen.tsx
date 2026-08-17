@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 
 // ─── Types ────────────────────────────────────────────────
@@ -343,12 +343,65 @@ export default function PeiScreen() {
   const [selectingPaciente, setSelectingPaciente] = useState<Atividade | null>(null);
   const [executing, setExecuting] = useState<{ atividade: Atividade; pacienteId: number; pacienteNome: string } | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
-  const [customActivities, setCustomActivities] = useState<Atividade[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try { return JSON.parse(localStorage.getItem('to_custom_atividades') ?? '[]'); } catch { return []; }
-  });
+  const [customActivities, setCustomActivities] = useState<Atividade[]>([]);
+  const [loadingAtividades, setLoadingAtividades] = useState(true);
   const [editingCustom, setEditingCustom] = useState<Atividade | null>(null);
   const [newForm, setNewForm] = useState({ nome: '', descricao: '', categoria: 'Comunicação' as Categoria });
+  const [saving, setSaving] = useState(false);
+
+  const clinicId = state.user?.clinicId ?? '';
+
+  // Load custom activities from Supabase on mount; migrate localStorage if needed
+  useEffect(() => {
+    if (!clinicId) { setLoadingAtividades(false); return; }
+
+    (async () => {
+      const { supabase } = await import('@/lib/supabase');
+
+      // One-time migration from localStorage
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('to_custom_atividades');
+        if (stored) {
+          try {
+            const fromStorage: Atividade[] = JSON.parse(stored);
+            if (fromStorage.length > 0) {
+              await supabase.from('metas').insert(
+                fromStorage.map((a) => ({
+                  clinic_id: clinicId,
+                  nome: a.nome,
+                  descricao: a.descricao || a.nome,
+                  area: a.categoria,
+                  tipo_registro: 'atividade',
+                  status: 'ativo',
+                }))
+              );
+            }
+            localStorage.removeItem('to_custom_atividades');
+          } catch { /* silent — keep localStorage untouched if migration fails */ }
+        }
+      }
+
+      const { data } = await supabase
+        .from('metas')
+        .select('*')
+        .eq('tipo_registro', 'atividade')
+        .eq('status', 'ativo')
+        .order('created_at', { ascending: true });
+
+      if (data) {
+        setCustomActivities(
+          data.map((row) => ({
+            id: String(row.id),
+            nome: (row.nome as string) || row.descricao,
+            descricao: row.descricao as string,
+            categoria: ((row.area as Categoria) || 'Comunicação'),
+            tipo: 'personalizada' as const,
+          }))
+        );
+      }
+      setLoadingAtividades(false);
+    })();
+  }, [clinicId]);
 
   const allAtividades = useMemo(() => [...PREDEFINED, ...customActivities], [customActivities]);
 
@@ -362,26 +415,58 @@ export default function PeiScreen() {
     return list;
   }, [allAtividades, catFilter, search]);
 
-  function saveCustom(ativ: Atividade) {
-    setCustomActivities((prev) => {
-      const idx = prev.findIndex((a) => a.id === ativ.id);
-      const next = idx >= 0 ? prev.map((a) => a.id === ativ.id ? ativ : a) : [...prev, ativ];
-      localStorage.setItem('to_custom_atividades', JSON.stringify(next));
-      return next;
-    });
-  }
-
-  function handleSaveNew(e: React.FormEvent) {
+  async function handleSaveNew(e: React.FormEvent) {
     e.preventDefault();
-    if (!newForm.nome.trim()) return;
-    const ativ: Atividade = {
-      id: editingCustom?.id ?? `c_${Date.now()}`,
-      nome: newForm.nome.trim(),
-      descricao: newForm.descricao.trim(),
-      categoria: newForm.categoria,
-      tipo: 'personalizada',
-    };
-    saveCustom(ativ);
+    if (!newForm.nome.trim() || !clinicId) return;
+    setSaving(true);
+
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const descricao = newForm.descricao.trim() || newForm.nome.trim();
+
+      if (editingCustom) {
+        await supabase
+          .from('metas')
+          .update({ nome: newForm.nome.trim(), descricao, area: newForm.categoria })
+          .eq('id', parseInt(editingCustom.id, 10));
+
+        setCustomActivities((prev) =>
+          prev.map((a) =>
+            a.id === editingCustom.id
+              ? { ...a, nome: newForm.nome.trim(), descricao: newForm.descricao.trim(), categoria: newForm.categoria }
+              : a
+          )
+        );
+      } else {
+        const { data } = await supabase
+          .from('metas')
+          .insert({
+            clinic_id: clinicId,
+            nome: newForm.nome.trim(),
+            descricao,
+            area: newForm.categoria,
+            tipo_registro: 'atividade',
+            status: 'ativo',
+          })
+          .select()
+          .single();
+
+        if (data) {
+          setCustomActivities((prev) => [
+            ...prev,
+            {
+              id: String(data.id),
+              nome: newForm.nome.trim(),
+              descricao: newForm.descricao.trim(),
+              categoria: newForm.categoria,
+              tipo: 'personalizada',
+            },
+          ]);
+        }
+      }
+    } catch { /* silent */ }
+
+    setSaving(false);
     setShowNewModal(false);
     setEditingCustom(null);
     setNewForm({ nome: '', descricao: '', categoria: 'Comunicação' });
@@ -436,12 +521,16 @@ export default function PeiScreen() {
 
         {/* Count */}
         <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 16, fontWeight: 600 }}>
-          {filtered.length} atividade{filtered.length !== 1 ? 's' : ''} {catFilter !== 'Todas' ? `em ${catFilter}` : ''}
-          {activePatientsCount > 0 && <span> · {activePatientsCount} paciente{activePatientsCount !== 1 ? 's' : ''} ativo{activePatientsCount !== 1 ? 's' : ''}</span>}
+          {loadingAtividades ? 'Carregando atividades...' : (
+            <>
+              {filtered.length} atividade{filtered.length !== 1 ? 's' : ''} {catFilter !== 'Todas' ? `em ${catFilter}` : ''}
+              {activePatientsCount > 0 && <span> · {activePatientsCount} paciente{activePatientsCount !== 1 ? 's' : ''} ativo{activePatientsCount !== 1 ? 's' : ''}</span>}
+            </>
+          )}
         </div>
 
         {/* Activity grid */}
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && !loadingAtividades ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--t3)' }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>Nenhuma atividade encontrada</div>
             <button className="btn-p" onClick={() => { setEditingCustom(null); setNewForm({ nome: '', descricao: '', categoria: catFilter === 'Todas' ? 'Comunicação' : catFilter as Categoria }); setShowNewModal(true); }} style={{ marginTop: 8 }}>
@@ -481,7 +570,7 @@ export default function PeiScreen() {
           atividade={executing.atividade}
           pacienteNome={executing.pacienteNome}
           pacienteId={executing.pacienteId}
-          clinicId={state.user?.clinicId ?? ''}
+          clinicId={clinicId}
           onClose={() => setExecuting(null)}
         />
       )}
@@ -514,7 +603,9 @@ export default function PeiScreen() {
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => setShowNewModal(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 11, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                <button type="submit" className="btn-p" style={{ flex: 2 }}>{editingCustom ? 'Salvar alterações' : 'Criar atividade'}</button>
+                <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>
+                  {saving ? 'Salvando...' : editingCustom ? 'Salvar alterações' : 'Criar atividade'}
+                </button>
               </div>
             </form>
           </div>
