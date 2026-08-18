@@ -21,18 +21,31 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (authError) {
-      setError(authError.message === 'Invalid login credentials'
-        ? 'E-mail ou senha incorretos'
-        : authError.message);
+      if (authError) {
+        const msg = authError.message;
+        setError(
+          msg === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' :
+          msg === 'Email not confirmed'        ? 'Confirme seu e-mail antes de entrar.' :
+          msg === 'Too many requests'          ? 'Muitas tentativas. Aguarde alguns minutos.' :
+          `Erro ao entrar: ${msg}`
+        );
+        setLoading(false);
+        return;
+      }
+
+      router.push(role === 'family' ? '/dashboard?view=familia' : '/dashboard');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(
+        msg.includes('fetch') || msg.includes('network') || msg.includes('Failed')
+          ? 'Erro de conexão. Verifique sua internet e tente novamente.'
+          : `Erro inesperado: ${msg}`
+      );
       setLoading(false);
-      return;
     }
-
-    // Passa a seleção de perfil via URL para o dashboard abrir a tela certa
-    router.push(role === 'family' ? '/dashboard?view=familia' : '/dashboard');
   }
 
   return (
