@@ -33,17 +33,21 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- ── 3. PACIENTES ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.pacientes (
-  id          BIGSERIAL PRIMARY KEY,
-  clinic_id   UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
-  name        TEXT NOT NULL,
-  dob         DATE,
-  sex         CHAR(1),
-  responsible TEXT,
-  diagnosis   TEXT,
-  therapist   TEXT,
-  notes       TEXT,
-  status      TEXT NOT NULL DEFAULT 'ativo',
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id                  BIGSERIAL PRIMARY KEY,
+  clinic_id           UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  name                TEXT NOT NULL,
+  codigo              TEXT,
+  dob                 DATE,
+  sex                 CHAR(1),
+  responsible         TEXT,
+  pai_nome            TEXT,
+  mae_nome            TEXT,
+  email_responsavel   TEXT,
+  diagnosis           TEXT,
+  therapist           TEXT,
+  notes               TEXT,
+  status              TEXT NOT NULL DEFAULT 'ativo',
+  created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── 4. AVALIAÇÕES ─────────────────────────────────────────────
@@ -51,10 +55,10 @@ CREATE TABLE IF NOT EXISTS public.avaliacoes (
   id          BIGSERIAL PRIMARY KEY,
   clinic_id   UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
   child_id    BIGINT NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
-  type        TEXT NOT NULL,   -- PEDI | PS | SPM | ABLLS | VBMAPP
-  date        DATE NOT NULL,
+  tipo        TEXT NOT NULL,   -- PEDI | PS | SPM | ABLLS | VBMAPP | CARS | Vineland | Personalizado
+  data        DATE NOT NULL,
   scores      JSONB NOT NULL DEFAULT '{}',
-  notes       TEXT,
+  notas       TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -78,6 +82,7 @@ CREATE TABLE IF NOT EXISTS public.pagamentos (
   id              BIGSERIAL PRIMARY KEY,
   clinic_id       UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
   child_id        BIGINT NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
+  contrato_id     BIGINT REFERENCES public.contratos(id) ON DELETE SET NULL,
   mes             TEXT NOT NULL,   -- formato: YYYY-MM
   valor_previsto  NUMERIC(10,2) NOT NULL DEFAULT 0,
   valor_recebido  NUMERIC(10,2) NOT NULL DEFAULT 0,
@@ -116,7 +121,53 @@ CREATE TABLE IF NOT EXISTS public.sessoes (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ── 9. AUDIT LOG (imutável por RLS) ──────────────────────────
+-- ── 9. METAS / PEI ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.metas (
+  id            BIGSERIAL PRIMARY KEY,
+  clinic_id     UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  child_id      BIGINT REFERENCES public.pacientes(id) ON DELETE CASCADE,
+  nome          TEXT,
+  descricao     TEXT NOT NULL,
+  area          TEXT,
+  status        TEXT NOT NULL DEFAULT 'ativo',
+  criterio      TEXT,
+  tipo_registro TEXT NOT NULL DEFAULT 'meta',   -- meta | atividade
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── 10. DESPESAS ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.despesas (
+  id          BIGSERIAL PRIMARY KEY,
+  clinic_id   UUID          NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  descricao   TEXT          NOT NULL,
+  categoria   TEXT          NOT NULL DEFAULT 'outros',
+  valor       DECIMAL(12,2) NOT NULL DEFAULT 0,
+  mes         TEXT          NOT NULL,
+  data        DATE,
+  status      TEXT          NOT NULL DEFAULT 'pago',
+  recorrente  BOOLEAN       NOT NULL DEFAULT FALSE,
+  notas       TEXT,
+  created_at  TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+-- ── 11. QUESTIONÁRIOS ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.questionarios_respostas (
+  id            BIGSERIAL PRIMARY KEY,
+  clinic_id     UUID NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  child_id      INTEGER NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
+  instrumento   TEXT NOT NULL,
+  respondente   TEXT DEFAULT '',
+  respostas     JSONB NOT NULL DEFAULT '{}',
+  score_total   NUMERIC,
+  score_detalhe JSONB DEFAULT '{}',
+  nivel_risco   TEXT,
+  interpretacao TEXT,
+  observacoes   TEXT DEFAULT '',
+  data_avaliacao DATE DEFAULT CURRENT_DATE,
+  criado_em     TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── 12. AUDIT LOG (imutável por RLS) ──────────────────────────
 CREATE TABLE IF NOT EXISTS public.audit_logs (
   id          BIGSERIAL PRIMARY KEY,
   clinic_id   UUID REFERENCES public.clinics(id),
@@ -139,10 +190,17 @@ CREATE INDEX IF NOT EXISTS idx_avaliacoes_child    ON public.avaliacoes(child_id
 CREATE INDEX IF NOT EXISTS idx_contratos_clinic    ON public.contratos(clinic_id);
 CREATE INDEX IF NOT EXISTS idx_pagamentos_clinic   ON public.pagamentos(clinic_id);
 CREATE INDEX IF NOT EXISTS idx_pagamentos_mes      ON public.pagamentos(mes);
-CREATE INDEX IF NOT EXISTS idx_funcionarios_clinic ON public.funcionarios(clinic_id);
-CREATE INDEX IF NOT EXISTS idx_sessoes_clinic      ON public.sessoes(clinic_id);
-CREATE INDEX IF NOT EXISTS idx_sessoes_data        ON public.sessoes(data);
-CREATE INDEX IF NOT EXISTS idx_audit_clinic        ON public.audit_logs(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_funcionarios_clinic  ON public.funcionarios(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_sessoes_clinic       ON public.sessoes(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_sessoes_data         ON public.sessoes(data);
+CREATE INDEX IF NOT EXISTS idx_metas_clinic         ON public.metas(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_metas_child          ON public.metas(child_id);
+CREATE INDEX IF NOT EXISTS idx_metas_tipo           ON public.metas(tipo_registro);
+CREATE INDEX IF NOT EXISTS idx_pacientes_codigo     ON public.pacientes(codigo);
+CREATE INDEX IF NOT EXISTS idx_despesas_clinic      ON public.despesas(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_qr_clinic            ON public.questionarios_respostas(clinic_id);
+CREATE INDEX IF NOT EXISTS idx_qr_child             ON public.questionarios_respostas(child_id);
+CREATE INDEX IF NOT EXISTS idx_audit_clinic         ON public.audit_logs(clinic_id);
 
 -- ══════════════════════════════════════════════════════════════
 -- ROW LEVEL SECURITY — isolamento total por clínica
@@ -154,8 +212,11 @@ ALTER TABLE public.avaliacoes    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contratos     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pagamentos    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.funcionarios  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.sessoes       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.audit_logs    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sessoes                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.metas                    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.despesas                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.questionarios_respostas  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs               ENABLE ROW LEVEL SECURITY;
 
 -- Função auxiliar: retorna clinic_id do usuário autenticado
 CREATE OR REPLACE FUNCTION public.minha_clinica()
@@ -176,6 +237,12 @@ CREATE POLICY "iso_contratos"    ON public.contratos    FOR ALL USING (clinic_id
 CREATE POLICY "iso_pagamentos"   ON public.pagamentos   FOR ALL USING (clinic_id = public.minha_clinica());
 CREATE POLICY "iso_funcionarios" ON public.funcionarios FOR ALL USING (clinic_id = public.minha_clinica());
 CREATE POLICY "iso_sessoes"      ON public.sessoes      FOR ALL USING (clinic_id = public.minha_clinica());
+CREATE POLICY "iso_metas"        ON public.metas        FOR ALL USING (clinic_id = public.minha_clinica());
+CREATE POLICY "iso_despesas"     ON public.despesas     FOR ALL USING (clinic_id = public.minha_clinica()) WITH CHECK (clinic_id = public.minha_clinica());
+CREATE POLICY "qr_select"        ON public.questionarios_respostas FOR SELECT USING (clinic_id = public.minha_clinica());
+CREATE POLICY "qr_insert"        ON public.questionarios_respostas FOR INSERT WITH CHECK (clinic_id = public.minha_clinica());
+CREATE POLICY "qr_update"        ON public.questionarios_respostas FOR UPDATE USING (clinic_id = public.minha_clinica());
+CREATE POLICY "qr_delete"        ON public.questionarios_respostas FOR DELETE USING (clinic_id = public.minha_clinica());
 -- Audit log: SELECT e INSERT apenas — UPDATE e DELETE bloqueados por ausência de política
 CREATE POLICY "audit_select"  ON public.audit_logs FOR SELECT USING (clinic_id = public.minha_clinica());
 CREATE POLICY "audit_insert"  ON public.audit_logs FOR INSERT WITH CHECK (clinic_id = public.minha_clinica());

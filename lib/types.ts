@@ -106,10 +106,12 @@ export interface Meta {
   id: number;
   clinic_id: string;
   child_id?: number | null;
+  nome?: string | null;
   descricao: string;
   area?: string | null;
   status: 'ativo' | 'atingido' | 'pausado';
   criterio?: string | null;
+  tipo_registro?: 'meta' | 'atividade';
   created_at?: string;
 }
 
