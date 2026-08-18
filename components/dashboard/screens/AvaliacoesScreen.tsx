@@ -209,6 +209,8 @@ export default function AvaliacoesScreen() {
   const [selectedAval, setSelectedAval] = useState<Avaliacao | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   // Inicializa o paciente selecionado quando os dados carregam
   useEffect(() => {
@@ -327,6 +329,48 @@ export default function AvaliacoesScreen() {
     }
   }
 
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !selectedChildId || !state.user?.clinicId) return;
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      // Accept single object or array
+      const items: unknown[] = Array.isArray(parsed) ? parsed : [parsed];
+      const { supabase } = await import('@/lib/supabase');
+      let count = 0;
+      for (const item of items) {
+        if (typeof item !== 'object' || item === null) continue;
+        const row = item as Record<string, unknown>;
+        const tipo = String(row.tipo ?? row.instrumento ?? 'Personalizado');
+        const dataStr = String(row.data ?? row.data_avaliacao ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
+        const notas = String(row.notas ?? row.observacoes ?? row.interpretacao ?? '').slice(0, 2000) || null;
+        const scores: Record<string, unknown> = typeof row.scores === 'object' && row.scores !== null ? row.scores as Record<string, unknown> : {};
+        if (row.instrumento_nome) scores.instrumento_nome = String(row.instrumento_nome);
+        const { data: created, error } = await supabase.from('avaliacoes').insert({
+          clinic_id: state.user!.clinicId,
+          child_id: selectedChildId,
+          tipo: TIPOS.includes(tipo as TipoAvaliacao) ? tipo : 'Personalizado',
+          data: dataStr,
+          notas,
+          scores,
+        }).select().single();
+        if (!error && created) {
+          dispatch({ type: 'SET_DATA', payload: { evaluations: [created, ...data.evaluations] } });
+          count++;
+        }
+      }
+      setImportMsg({ type: 'ok', text: `${count} avaliação(ões) importada(s) com sucesso!` });
+    } catch {
+      setImportMsg({ type: 'err', text: 'Erro ao importar. Verifique se o arquivo é um JSON válido.' });
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const evalsByTipo = useMemo(() => {
     const map: Record<string, Avaliacao[]> = {};
     for (const e of childEvals) {
@@ -362,8 +406,21 @@ export default function AvaliacoesScreen() {
               {childEvals.length} avaliação(ões)
             </span>
           )}
-          <button className="btn-p" onClick={openNew} style={{ marginLeft: 'auto' }}>+ Nova avaliação</button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <label style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid var(--bdr)', background: 'var(--sf)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, opacity: importing ? .6 : 1 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              {importing ? 'Importando...' : 'Importar JSON'}
+              <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} disabled={importing} />
+            </label>
+            <button className="btn-p" onClick={openNew}>+ Nova avaliação</button>
+          </div>
         </div>
+        {importMsg && (
+          <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: importMsg.type === 'ok' ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)', border: `1px solid ${importMsg.type === 'ok' ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`, fontSize: 13, fontWeight: 600, color: importMsg.type === 'ok' ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {importMsg.text}
+            <button onClick={() => setImportMsg(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+          </div>
+        )}
 
         {TIPOS.filter((t) => evalsByTipo[t]?.length).length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 10, marginBottom: 24 }}>

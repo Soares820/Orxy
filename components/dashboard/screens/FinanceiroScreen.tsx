@@ -5,7 +5,7 @@ import { useApp } from '@/contexts/AppContext';
 import { formatCurrency, MONTH_NAMES, getLastNMonths } from '@/lib/utils';
 import type { Pagamento, Contrato, Despesa } from '@/lib/types';
 
-type TabType = 'pagamentos' | 'contratos' | 'despesas' | 'dre';
+type TabType = 'pagamentos' | 'contratos' | 'despesas' | 'dre' | 'bi';
 
 const CAT_LABELS: Record<string, string> = {
   folha: 'Folha de pagamento',
@@ -223,6 +223,216 @@ function ResultadoChart({ months, payments, expenses }: {
         </g>
       ))}
     </svg>
+  );
+}
+
+// ─── BI Financeiro ────────────────────────────────────────
+function BiFinanceiro() {
+  const { state } = useApp();
+  const { data } = state;
+  const months6 = useMemo(() => getLastNMonths(6), []);
+  const months12 = useMemo(() => getLastNMonths(12), []);
+
+  // ── Faturamento ────────────────────────────────────────
+  const faturamento = useMemo(() => {
+    const previsto6 = data.payments.filter((p) => months6.includes(p.mes)).reduce((s, p) => s + (p.valor_previsto ?? 0), 0);
+    const recebido6 = data.payments.filter((p) => months6.includes(p.mes) && (p.status === 'recebido' || p.status === 'parcial')).reduce((s, p) => s + (p.valor_recebido ?? 0), 0);
+    const inadimplente = data.payments.filter((p) => p.status === 'inadimplente').reduce((s, p) => s + (p.valor_previsto ?? 0), 0);
+    const pendente = data.payments.filter((p) => p.status === 'pendente').reduce((s, p) => s + (p.valor_previsto ?? 0), 0);
+    const taxaRecebimento = previsto6 > 0 ? Math.round((recebido6 / previsto6) * 100) : 0;
+    const inadimplenteCount = data.payments.filter((p) => p.status === 'inadimplente').length;
+    const totalPags = data.payments.length;
+    const taxaInadimplencia = totalPags > 0 ? Math.round((inadimplenteCount / totalPags) * 100) : 0;
+
+    // Convênio vs particular
+    const porTipo: Record<string, number> = { particular: 0, convenio: 0 };
+    data.contracts.forEach((c) => {
+      const tipo = c.tipo === 'convenio' ? 'convenio' : 'particular';
+      const rec = data.payments.filter((p) => p.contrato_id === c.id && (p.status === 'recebido' || p.status === 'parcial')).reduce((s, p) => s + (p.valor_recebido ?? 0), 0);
+      porTipo[tipo] = (porTipo[tipo] ?? 0) + rec;
+    });
+
+    return { previsto6, recebido6, inadimplente, pendente, taxaRecebimento, inadimplenteCount, taxaInadimplencia, porTipo };
+  }, [data, months6]);
+
+  // ── Por mês ────────────────────────────────────────────
+  const porMes = useMemo(() => months6.map((m) => {
+    const previsto = data.payments.filter((p) => p.mes === m).reduce((s, p) => s + (p.valor_previsto ?? 0), 0);
+    const recebido = data.payments.filter((p) => p.mes === m && (p.status === 'recebido' || p.status === 'parcial')).reduce((s, p) => s + (p.valor_recebido ?? 0), 0);
+    const despesas = data.expenses.filter((e) => e.mes === m && e.status === 'pago').reduce((s, e) => s + e.valor, 0);
+    return { label: MONTH_NAMES[parseInt(m.slice(5, 7)) - 1].slice(0, 3), previsto, recebido, despesas, resultado: recebido - despesas };
+  }), [data, months6]);
+  const maxMes = Math.max(...porMes.flatMap((m) => [m.previsto, m.despesas]), 1);
+
+  // ── Inadimplentes ──────────────────────────────────────
+  const inadimplentes = useMemo(() => {
+    return data.payments
+      .filter((p) => p.status === 'inadimplente' || p.status === 'pendente')
+      .sort((a, b) => (b.valor_previsto ?? 0) - (a.valor_previsto ?? 0))
+      .slice(0, 8)
+      .map((p) => {
+        const child = data.children.find((c) => c.id === p.child_id);
+        return { ...p, childName: child?.name ?? `Paciente ${p.child_id}` };
+      });
+  }, [data]);
+
+  // ── Ticket médio mensal ────────────────────────────────
+  const ticketMedio = useMemo(() => {
+    const recebidos = data.payments.filter((p) => p.status === 'recebido' || p.status === 'parcial');
+    return recebidos.length > 0 ? recebidos.reduce((s, p) => s + (p.valor_recebido ?? 0), 0) / recebidos.length : 0;
+  }, [data.payments]);
+
+  // ── Despesas anual por categoria ───────────────────────
+  const despPorCat = useMemo(() => {
+    const map: Record<string, number> = {};
+    data.expenses.filter((e) => months12.includes(e.mes) && e.status === 'pago').forEach((e) => {
+      map[e.categoria] = (map[e.categoria] ?? 0) + e.valor;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [data.expenses, months12]);
+  const maxCatAn = Math.max(...despPorCat.map((c) => c[1]), 1);
+
+  const pctColor2 = (p: number) => p >= 80 ? '#10b981' : p >= 60 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 4 }}>
+
+      {/* ── KPIs financeiros ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+        {[
+          { label: 'Receita recebida (6m)', value: formatCurrency(faturamento.recebido6), color: '#10b981', sub: `de ${formatCurrency(faturamento.previsto6)} previsto` },
+          { label: 'Taxa de recebimento', value: `${faturamento.taxaRecebimento}%`, color: pctColor2(faturamento.taxaRecebimento), sub: `${faturamento.inadimplenteCount} inadimplentes` },
+          { label: 'Inadimplência', value: formatCurrency(faturamento.inadimplente), color: '#ef4444', sub: `${faturamento.taxaInadimplencia}% das cobranças` },
+          { label: 'Em aberto', value: formatCurrency(faturamento.pendente), color: '#f59e0b', sub: 'aguardando pagamento' },
+          { label: 'Ticket médio', value: formatCurrency(ticketMedio), color: 'var(--p)', sub: 'por cobrança recebida' },
+        ].map((k) => (
+          <div key={k.label} style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '16px 14px', borderTop: `3px solid ${k.color}` }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: k.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{k.value}</div>
+            {k.sub && <div style={{ fontSize: 10, color: k.color, opacity: .7, fontWeight: 600, marginTop: 4 }}>{k.sub}</div>}
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginTop: 6 }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Gráfico receita vs despesas por mês ── */}
+      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1)' }}>Faturamento vs Despesas — 6 meses</div>
+          <div style={{ display: 'flex', gap: 14 }}>
+            {[['rgba(99,102,241,.4)', 'Previsto'], ['#10b981', 'Recebido'], ['#ef4444', 'Despesas']].map(([c, l]) => (
+              <div key={l as string} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--t3)' }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: c as string }} />{l}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 150 }}>
+          {porMes.map((m) => (
+            <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+              <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: '85%' }}>
+                <div style={{ flex: 1, background: 'rgba(99,102,241,.25)', borderRadius: '3px 3px 0 0', height: `${(m.previsto / maxMes) * 100}%`, minHeight: m.previsto > 0 ? 3 : 0 }} />
+                <div style={{ flex: 1, background: '#10b981', borderRadius: '3px 3px 0 0', height: `${(m.recebido / maxMes) * 100}%`, minHeight: m.recebido > 0 ? 3 : 0 }} />
+                <div style={{ flex: 1, background: '#ef4444', opacity: .8, borderRadius: '3px 3px 0 0', height: `${(m.despesas / maxMes) * 100}%`, minHeight: m.despesas > 0 ? 3 : 0 }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>{m.label}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: m.resultado >= 0 ? '#10b981' : '#ef4444' }}>
+                {m.resultado >= 0 ? '+' : ''}{formatCurrency(m.resultado).replace('R$ ', '')}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Convênio vs Particular + Inadimplentes ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+        {/* Convênio vs Particular */}
+        <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 18px' }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1)', marginBottom: 16 }}>Repasse por origem</div>
+          {faturamento.porTipo.particular === 0 && faturamento.porTipo.convenio === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--t3)' }}>Sem dados de contratos</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[
+                { key: 'particular', label: 'Particular', color: 'var(--p)', icon: '👤' },
+                { key: 'convenio', label: 'Convênio / Plano', color: '#06b6d4', icon: '🏥' },
+              ].map(({ key, label, color, icon }) => {
+                const val = faturamento.porTipo[key] ?? 0;
+                const total = faturamento.porTipo.particular + faturamento.porTipo.convenio;
+                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                return (
+                  <div key={key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
+                        <span>{icon}</span>{label}
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--t1)' }}>{formatCurrency(val)}</div>
+                    </div>
+                    <div style={{ height: 10, background: 'var(--sf2)', borderRadius: 5, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 5, transition: 'width .4s ease' }} />
+                    </div>
+                    <div style={{ fontSize: 11, color, fontWeight: 700, marginTop: 3 }}>{pct}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Inadimplentes / Pendentes */}
+        <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1)' }}>Em aberto / Inadimplentes</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,.1)', padding: '3px 10px', borderRadius: 20 }}>{inadimplentes.length} cobranças</div>
+          </div>
+          {inadimplentes.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>✅</span> Todas as cobranças em dia
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
+              {inadimplentes.map((p) => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--sf2)', borderRadius: 8, border: `1px solid ${p.status === 'inadimplente' ? 'rgba(239,68,68,.2)' : 'var(--bdr)'}` }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.childName}</div>
+                    <div style={{ fontSize: 10, color: 'var(--t3)' }}>{p.mes}</div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: p.status === 'inadimplente' ? '#ef4444' : '#f59e0b', flexShrink: 0 }}>{formatCurrency(p.valor_previsto)}</div>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 12, background: p.status === 'inadimplente' ? 'rgba(239,68,68,.15)' : 'rgba(245,158,11,.15)', color: p.status === 'inadimplente' ? '#ef4444' : '#f59e0b', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    {p.status === 'inadimplente' ? 'Inad.' : 'Pend.'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Despesas por categoria (12m) ── */}
+      <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 18px' }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1)', marginBottom: 16 }}>Despesas por categoria — 12 meses</div>
+        {despPorCat.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--t3)' }}>Sem despesas registradas</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+            {despPorCat.map(([cat, val]) => (
+              <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 3, background: CAT_COLORS[cat as keyof typeof CAT_COLORS] ?? '#6b7280', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>{CAT_LABELS[cat] ?? cat}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{formatCurrency(val)}</div>
+                  </div>
+                  <div style={{ height: 6, background: 'var(--sf2)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(val / maxCatAn) * 100}%`, background: CAT_COLORS[cat as keyof typeof CAT_COLORS] ?? '#6b7280', borderRadius: 3, transition: 'width .4s' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -713,6 +923,7 @@ export default function FinanceiroScreen() {
     { key: 'contratos',  label: 'Contratos' },
     { key: 'despesas',   label: 'Despesas' },
     { key: 'dre',        label: 'DRE' },
+    { key: 'bi',         label: 'BI Financeiro' },
   ];
 
   const inp: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' };
@@ -929,7 +1140,7 @@ export default function FinanceiroScreen() {
         </div>
 
         {/* Month filter */}
-        {tab !== 'dre' && (
+        {tab !== 'dre' && tab !== 'bi' && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit' }}>
               {monthOptions.map((o) => <option key={o.val} value={o.val}>{o.label}</option>)}
@@ -1029,6 +1240,7 @@ export default function FinanceiroScreen() {
         )}
 
         {tab === 'dre' && <DreTab />}
+        {tab === 'bi' && <BiFinanceiro />}
       </div>
 
       {/* Payment Modal */}

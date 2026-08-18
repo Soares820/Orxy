@@ -234,110 +234,117 @@ export default function PacientesScreen() {
 
       {/* Modal */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setShowModal(false)}>
-          <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-              <div>
-                <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selected ? 'Editar paciente' : 'Novo paciente'}</h2>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 800, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }} onClick={() => setShowModal(false)}>
+          <div style={{ background: 'var(--bg)', borderRadius: 24, width: '100%', maxWidth: 560, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, var(--p) 0%, var(--v) 100%)', padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                {selected ? '✏️' : '👤'}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{selected ? 'Editar paciente' : 'Novo paciente'}</div>
                 {selected?.codigo && (
-                  <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 4 }}>
-                    Código do paciente:{' '}
-                    <strong style={{ color: 'var(--p)', letterSpacing: '0.15em', fontFamily: 'monospace', fontSize: 14 }}>{selected.codigo}</strong>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', marginTop: 2 }}>
+                    Código: <strong style={{ letterSpacing: '0.1em', fontFamily: 'monospace' }}>{selected.codigo}</strong>
                   </div>
                 )}
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
+              <button onClick={() => setShowModal(false)} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
             </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Dados do paciente */}
-              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1 }}>Dados do paciente</div>
-              {[
-                { label: 'Nome completo *', field: 'name', type: 'text', placeholder: 'Ex: Maria Eduarda Silva' },
-                { label: 'Data de nascimento', field: 'dob', type: 'date', placeholder: '' },
-                { label: 'Diagnóstico', field: 'diagnosis', type: 'text', placeholder: 'Ex: TEA nível 1' },
-              ].map(({ label, field, type, placeholder }) => (
-                <div key={field}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>{label}</label>
-                  <input
-                    type={type}
-                    placeholder={placeholder}
-                    value={form[field as keyof typeof form]}
-                    onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                    required={field === 'name'}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  />
-                </div>
-              ))}
 
-              {/* Dados familiares */}
-              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginTop: 6 }}>Dados dos pais / responsavel</div>
-              {[
-                { label: 'Nome do pai', field: 'pai_nome', placeholder: 'Nome completo do pai' },
-                { label: 'Nome da mae', field: 'mae_nome', placeholder: 'Nome completo da mae' },
-                { label: 'Responsavel (legal)', field: 'responsible', placeholder: 'Responsavel legal pelo paciente' },
-              ].map(({ label, field, placeholder }) => (
-                <div key={field}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>{label}</label>
-                  <input
-                    type="text"
-                    placeholder={placeholder}
-                    value={form[field as keyof typeof form]}
-                    onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  />
+            <form onSubmit={handleSave} style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {/* Seção: Paciente */}
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--p)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ height: 1, width: 12, background: 'var(--p)' }} />Dados do Paciente
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Nome completo *</label>
+                  <input type="text" placeholder="Ex: Maria Eduarda Silva" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required
+                    style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 </div>
-              ))}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Data de nascimento</label>
+                    <input type="date" value={form.dob} onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                      style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Diagnóstico</label>
+                    <input type="text" placeholder="Ex: TEA nível 1" value={form.diagnosis} onChange={(e) => setForm((f) => ({ ...f, diagnosis: e.target.value }))}
+                      style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+              </div>
 
-              {/* Email para portal + botão de convite */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>E-mail para portal dos pais</label>
+              {/* Seção: Família */}
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--p)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ height: 1, width: 12, background: 'var(--p)' }} />Dados dos Pais / Responsável
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Nome do pai</label>
+                    <input type="text" placeholder="Nome completo" value={form.pai_nome} onChange={(e) => setForm((f) => ({ ...f, pai_nome: e.target.value }))}
+                      style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Nome da mãe</label>
+                    <input type="text" placeholder="Nome completo" value={form.mae_nome} onChange={(e) => setForm((f) => ({ ...f, mae_nome: e.target.value }))}
+                      style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Responsável legal</label>
+                  <input type="text" placeholder="Responsável legal pelo paciente" value={form.responsible} onChange={(e) => setForm((f) => ({ ...f, responsible: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
+              {/* Seção: Acesso portal */}
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--p)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ height: 1, width: 12, background: 'var(--p)' }} />Acesso ao Portal da Família
+              </div>
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>E-mail do responsável</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="email"
-                    placeholder="email@exemplo.com"
-                    value={form.email_responsavel}
+                  <input type="email" placeholder="email@exemplo.com" value={form.email_responsavel}
                     onChange={(e) => { setForm((f) => ({ ...f, email_responsavel: e.target.value })); setInviteMsg(''); }}
-                    style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  />
+                    style={{ flex: 1, padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
                   {form.email_responsavel && (
-                    <button
-                      type="button"
-                      onClick={handleSendInvite}
-                      disabled={inviting}
-                      style={{ padding: '10px 14px', border: '1px solid var(--p)', borderRadius: 10, background: 'var(--ps)', color: 'var(--p)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0 }}
-                    >
-                      {inviting ? 'Enviando...' : 'Enviar acesso'}
+                    <button type="button" onClick={handleSendInvite} disabled={inviting}
+                      style={{ padding: '11px 16px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg,var(--p),var(--v))', color: '#fff', fontSize: 12, fontWeight: 700, cursor: inviting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0, opacity: inviting ? .7 : 1 }}>
+                      {inviting ? 'Enviando...' : 'Enviar convite'}
                     </button>
                   )}
                 </div>
                 {inviteMsg && (
-                  <div style={{ marginTop: 6, fontSize: 12, padding: '6px 10px', borderRadius: 8, background: inviteMsg.startsWith('Erro') ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)', color: inviteMsg.startsWith('Erro') ? '#f87171' : '#10b981', fontWeight: 600 }}>
+                  <div style={{ marginTop: 8, fontSize: 12, padding: '8px 12px', borderRadius: 8, background: inviteMsg.startsWith('Erro') ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)', color: inviteMsg.startsWith('Erro') ? '#f87171' : '#10b981', fontWeight: 600, border: `1px solid ${inviteMsg.startsWith('Erro') ? 'rgba(239,68,68,.2)' : 'rgba(16,185,129,.2)'}` }}>
                     {inviteMsg}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>Clique em &quot;Enviar acesso&quot; para mandar o convite de acesso ao portal da família</div>
+                {!inviteMsg && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}>O responsável receberá um e-mail para criar senha e acessar o portal da família</div>}
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Observacoes</label>
-                <textarea
-                  placeholder="Informacoes adicionais..."
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={3}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
-                />
+              {/* Observações */}
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Observações</label>
+                <textarea placeholder="Informações adicionais sobre o paciente..." value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={3}
+                  style={{ width: '100%', padding: '11px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
               </div>
 
               {saveError && (
-                <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#f87171' }}>
+                <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>
                   {saveError}
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                <button type="submit" disabled={saving} className="btn-p" style={{ flex: 2 }}>{saving ? 'Salvando...' : selected ? 'Salvar alteracoes' : 'Cadastrar paciente'}</button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+                <button type="submit" disabled={saving} style={{ flex: 2, padding: '12px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg,var(--p),var(--v))', color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: saving ? .7 : 1 }}>
+                  {saving ? 'Salvando...' : selected ? 'Salvar alterações' : 'Cadastrar paciente'}
+                </button>
               </div>
             </form>
           </div>

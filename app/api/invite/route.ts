@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-const VALID_ROLES = ['admin', 'terapeuta', 'recepcao', 'financeiro'];
+const VALID_ROLES = ['admin', 'terapeuta', 'recepcao', 'financeiro', 'familia'];
 
 function escapeHtml(s: unknown): string {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');

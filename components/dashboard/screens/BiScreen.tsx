@@ -4,16 +4,16 @@ import { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { getLastNMonths, MONTH_NAMES } from '@/lib/utils';
 
+type BiTab = 'evolucao' | 'clinica';
+
 function pctColor(p: number) { return p >= 80 ? '#10b981' : p >= 50 ? '#f59e0b' : '#ef4444'; }
 
-// ─── Mini sparkline bar ───────────────────────────────────
 function SparkBar({ pct, color }: { pct: number; color: string }) {
   return (
     <div style={{ flex: 1, borderRadius: '3px 3px 0 0', height: `${Math.max(pct, 4)}%`, background: color, transition: 'height .3s ease' }} />
   );
 }
 
-// ─── KPI card ────────────────────────────────────────────
 function Kpi({ value, label, color, sub, accent }: { value: string | number; label: string; color: string; sub?: string; accent?: string }) {
   return (
     <div style={{ background: 'var(--sf)', border: `1px solid var(--bdr)`, borderRadius: 'var(--r)', padding: '18px 16px', borderTop: `3px solid ${accent || color}`, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -24,7 +24,6 @@ function Kpi({ value, label, color, sub, accent }: { value: string | number; lab
   );
 }
 
-// ─── Section card ─────────────────────────────────────────
 function Card({ title, badge, children, style }: { title: string; badge?: string | number; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '20px 18px', ...style }}>
@@ -39,7 +38,291 @@ function Card({ title, badge, children, style }: { title: string; badge?: string
   );
 }
 
-// ═══ BI EVOLUÇÃO ════════════════════════════════════════
+// ═══ PAINEL CLÍNICO (clinic-wide analytics) ══════════════
+function BiClinica() {
+  const { state } = useApp();
+  const { data } = state;
+
+  const months6 = useMemo(() => getLastNMonths(6), []);
+  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+
+  // ── KPIs ──────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const sessoesMes = data.sessions.filter((s) => s.data?.startsWith(currentMonth));
+    const realizadas = sessoesMes.filter((s) => s.status === 'realizado').length;
+    const faltas = sessoesMes.filter((s) => s.status === 'falta' || s.status === 'cancelado').length;
+    const totalMes = sessoesMes.length;
+    const presenca = totalMes > 0 ? Math.round((realizadas / totalMes) * 100) : 0;
+    const absenteismo = totalMes > 0 ? Math.round((faltas / totalMes) * 100) : 0;
+    const pacientesAtivos = data.children.filter((c) => c.status === 'ativo').length;
+
+    // Média semanal últimos 3 meses
+    const last3m = getLastNMonths(3);
+    const s3m = data.sessions.filter((s) => last3m.includes(s.data?.slice(0, 7)));
+    const semanas = 13;
+    const mediaSemanais = Math.round(s3m.filter((s) => s.status === 'realizado').length / semanas);
+
+    return { realizadas, faltas, totalMes, presenca, absenteismo, pacientesAtivos, mediaSemanais };
+  }, [data, currentMonth]);
+
+  // ── Volume por mês ─────────────────────────────────────
+  const sessionsByMonth = useMemo(() => months6.map((m) => {
+    const ms = data.sessions.filter((s) => s.data?.startsWith(m));
+    return {
+      label: MONTH_NAMES[parseInt(m.slice(5, 7)) - 1].slice(0, 3),
+      total: ms.length,
+      realizadas: ms.filter((s) => s.status === 'realizado').length,
+      faltas: ms.filter((s) => s.status === 'falta' || s.status === 'cancelado').length,
+    };
+  }), [months6, data.sessions]);
+  const maxSess = Math.max(...sessionsByMonth.map((m) => m.total), 1);
+
+  // ── Por profissional ───────────────────────────────────
+  const byProfissional = useMemo(() => {
+    const map: Record<string, { nome: string; realizadas: number; total: number }> = {};
+    data.sessions.forEach((s) => {
+      const fId = s.funcionario_id;
+      const key = fId ? String(fId) : '__sem__';
+      const nome = fId ? (data.team.find((t) => t.id === fId)?.nome ?? `Prof. ${fId}`) : 'Sem profissional';
+      if (!map[key]) map[key] = { nome, realizadas: 0, total: 0 };
+      map[key].total++;
+      if (s.status === 'realizado') map[key].realizadas++;
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total).slice(0, 8);
+  }, [data.sessions, data.team]);
+  const maxProf = Math.max(...byProfissional.map((p) => p.total), 1);
+
+  // ── Por tipo de sessão ─────────────────────────────────
+  const byTipo = useMemo(() => {
+    const map: Record<string, number> = {};
+    data.sessions.filter((s) => s.status === 'realizado').forEach((s) => {
+      const t = s.tipo?.split(' - ')[0] || 'Outro';
+      map[t] = (map[t] ?? 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [data.sessions]);
+  const maxTipo = Math.max(...byTipo.map((t) => t[1]), 1);
+
+  // ── Perfil etário ──────────────────────────────────────
+  const faixasEtarias = useMemo(() => {
+    const ranges = [
+      { label: '0–3', min: 0, max: 3 },
+      { label: '4–6', min: 4, max: 6 },
+      { label: '7–10', min: 7, max: 10 },
+      { label: '11–14', min: 11, max: 14 },
+      { label: '15+', min: 15, max: 99 },
+      { label: 'N/D', min: -1, max: -1 },
+    ];
+    const now = new Date();
+    return ranges.map((r) => {
+      const count = data.children.filter((c) => {
+        if (!c.dob) return r.label === 'N/D';
+        if (r.label === 'N/D') return false;
+        const age = now.getFullYear() - new Date(c.dob).getFullYear();
+        return age >= r.min && age <= r.max;
+      }).length;
+      return { label: r.label, count };
+    }).filter((f) => f.count > 0);
+  }, [data.children]);
+  const maxFaixa = Math.max(...faixasEtarias.map((f) => f.count), 1);
+
+  // ── Por diagnóstico ────────────────────────────────────
+  const byDiag = useMemo(() => {
+    const map: Record<string, number> = {};
+    data.children.forEach((c) => {
+      const diag = c.diagnosis?.trim() || 'Não informado';
+      const key = diag.split(' ')[0].toUpperCase().slice(0, 8);
+      map[key] = (map[key] ?? 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [data.children]);
+
+  // ── Absenteísmo por mês ────────────────────────────────
+  const absenteismoMensal = useMemo(() => months6.map((m) => {
+    const ms = data.sessions.filter((s) => s.data?.startsWith(m));
+    const total = ms.length;
+    const faltas = ms.filter((s) => s.status === 'falta' || s.status === 'cancelado').length;
+    return {
+      label: MONTH_NAMES[parseInt(m.slice(5, 7)) - 1].slice(0, 3),
+      pct: total > 0 ? Math.round((faltas / total) * 100) : 0,
+      faltas,
+      total,
+    };
+  }), [months6, data.sessions]);
+
+  const DIAG_COLORS = ['var(--p)', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+  const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
+  void inp;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* ── KPIs ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+        <Kpi value={kpis.realizadas} label="Sessões realizadas este mês" color="#10b981" accent="#10b981" />
+        <Kpi value={kpis.pacientesAtivos} label="Pacientes ativos" color="var(--p)" accent="var(--p)" />
+        <Kpi value={`${kpis.presenca}%`} label="Taxa de presença" color={pctColor(kpis.presenca)} sub={`${kpis.totalMes} sessões agendadas`} accent={pctColor(kpis.presenca)} />
+        <Kpi value={kpis.faltas} label="Faltas / Cancelamentos" color={kpis.faltas > 0 ? '#ef4444' : 'var(--t3)'} accent={kpis.faltas > 0 ? '#ef4444' : 'var(--bdr)'} />
+        <Kpi value={`${kpis.absenteismo}%`} label="Taxa absenteísmo" color={pctColor(100 - kpis.absenteismo)} sub="Faltas + cancelamentos" accent={kpis.absenteismo > 20 ? '#ef4444' : '#10b981'} />
+        <Kpi value={kpis.mediaSemanais} label="Sessões/semana (média 3m)" color="var(--v)" accent="var(--v)" />
+      </div>
+
+      {/* ── Volume mensal ── */}
+      <Card title="Volume de sessões — 6 meses" badge={`${data.sessions.length} total`}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 130, marginBottom: 12 }}>
+          {sessionsByMonth.map((m) => (
+            <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' }}>
+              {m.total > 0 && <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{m.total}</div>}
+              <div style={{ width: '100%', height: `${Math.max((m.total / maxSess) * 100, m.total > 0 ? 5 : 0)}%`, position: 'relative', borderRadius: '4px 4px 0 0', minHeight: 4 }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'var(--sf2)', borderRadius: '4px 4px 0 0' }} />
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${m.faltas > 0 && m.total > 0 ? (m.faltas / m.total) * 100 : 0}%`, background: '#ef444430', borderRadius: '4px 4px 0 0' }} />
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${m.total > 0 ? (m.realizadas / m.total) * 100 : 0}%`, background: '#10b981', borderRadius: '4px 4px 0 0', transition: 'height .4s ease' }} />
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 16, borderTop: '1px solid var(--bdr)', paddingTop: 10 }}>
+          {[['#10b981', 'Realizadas'], ['var(--sf2)', 'Agendadas'], ['#ef444430', 'Faltas']].map(([c, l]) => (
+            <div key={l as string} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--t3)' }}>
+              <div style={{ width: 10, height: 10, borderRadius: 3, background: c as string }} />{l}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* ── Por profissional + Absenteísmo ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+        {/* Sessões por profissional */}
+        <Card title="Sessões por profissional">
+          {byProfissional.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--t3)', textAlign: 'center', padding: '20px 0' }}>
+              Nenhum profissional vinculado às sessões ainda
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {byProfissional.map((p, i) => {
+                const presencaPct = p.total > 0 ? Math.round((p.realizadas / p.total) * 100) : 0;
+                return (
+                  <div key={p.nome} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: DIAG_COLORS[i % DIAG_COLORS.length] + '20', border: `1px solid ${DIAG_COLORS[i % DIAG_COLORS.length]}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: DIAG_COLORS[i % DIAG_COLORS.length], flexShrink: 0 }}>
+                      {p.nome.charAt(0)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{p.nome}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t1)', flexShrink: 0 }}>{p.total} sess.</div>
+                      </div>
+                      <div style={{ height: 7, background: 'var(--sf2)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                        <div style={{ position: 'absolute', inset: 0, width: `${(p.total / maxProf) * 100}%`, background: DIAG_COLORS[i % DIAG_COLORS.length] + '30', borderRadius: 4 }} />
+                        <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${(p.realizadas / maxProf) * 100}%`, background: DIAG_COLORS[i % DIAG_COLORS.length], borderRadius: 4, transition: 'width .4s' }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: pctColor(presencaPct), flexShrink: 0, width: 32, textAlign: 'right' }}>{presencaPct}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Absenteísmo por mês */}
+        <Card title="Absenteísmo mensal" badge={`${kpis.absenteismo}% este mês`}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, marginBottom: 10 }}>
+            {absenteismoMensal.map((m) => (
+              <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
+                {m.pct > 0 && <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 700 }}>{m.pct}%</div>}
+                <div style={{ width: '100%', height: `${Math.max(m.pct, m.pct > 0 ? 4 : 0)}%`, background: m.pct > 30 ? '#ef4444' : m.pct > 15 ? '#f59e0b' : '#10b98166', borderRadius: '4px 4px 0 0', transition: 'height .4s ease', minHeight: m.pct > 0 ? 4 : 0 }} />
+                <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>{m.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ paddingTop: 10, borderTop: '1px solid var(--bdr)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+              <span style={{ color: 'var(--t3)' }}>Absenteísmo alvo: &lt;15%</span>
+              <span style={{ fontWeight: 700, color: kpis.absenteismo <= 15 ? '#10b981' : kpis.absenteismo <= 25 ? '#f59e0b' : '#ef4444' }}>
+                {kpis.absenteismo <= 15 ? 'Excelente' : kpis.absenteismo <= 25 ? 'Atenção' : 'Crítico'}
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Perfil pacientes ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+        {/* Faixa etária */}
+        <Card title="Perfil etário dos pacientes" badge={`${data.children.length} pacientes`}>
+          {faixasEtarias.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--t3)' }}>Nenhum paciente cadastrado</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {faixasEtarias.map((f, i) => {
+                const pct = Math.round((f.count / data.children.length) * 100);
+                return (
+                  <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 34, fontSize: 12, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>{f.label}</div>
+                    <div style={{ flex: 1, height: 10, background: 'var(--sf2)', borderRadius: 5, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: DIAG_COLORS[i % DIAG_COLORS.length], borderRadius: 5, transition: 'width .4s ease' }} />
+                    </div>
+                    <div style={{ width: 54, fontSize: 12, fontWeight: 700, color: 'var(--t1)', textAlign: 'right', flexShrink: 0 }}>{f.count} ({pct}%)</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Por diagnóstico */}
+        <Card title="Diagnósticos" badge={data.children.length}>
+          {byDiag.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--t3)' }}>Nenhum diagnóstico registrado</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {byDiag.map(([diag, count], i) => {
+                const pct = Math.round((count / data.children.length) * 100);
+                return (
+                  <div key={diag} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: DIAG_COLORS[i % DIAG_COLORS.length], flexShrink: 0 }} />
+                    <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{diag}</div>
+                    <div style={{ flex: 2, height: 8, background: 'var(--sf2)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: DIAG_COLORS[i % DIAG_COLORS.length], borderRadius: 4, transition: 'width .4s ease' }} />
+                    </div>
+                    <div style={{ width: 48, fontSize: 12, fontWeight: 700, color: 'var(--t1)', textAlign: 'right', flexShrink: 0 }}>{count} ({pct}%)</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* ── Por tipo de sessão ── */}
+      {byTipo.length > 0 && (
+        <Card title="Sessões por tipo / modalidade" badge="realizadas">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+            {byTipo.map(([tipo, count], i) => (
+              <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tipo}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t1)', flexShrink: 0 }}>{count}</div>
+                  </div>
+                  <div style={{ height: 7, background: 'var(--sf2)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(count / maxTipo) * 100}%`, background: DIAG_COLORS[i % DIAG_COLORS.length], borderRadius: 4, transition: 'width .4s ease' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ═══ BI EVOLUÇÃO (per-patient — unchanged) ══════════════
 function BiEvolucao() {
   const { state } = useApp();
   const { data } = state;
@@ -141,25 +424,14 @@ function BiEvolucao() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-      {/* ── Seletor de paciente (busca + dropdown) ── */}
+      {/* Seletor */}
       <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '16px 20px' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Paciente selecionado</div>
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-
-          {/* Campo de busca com dropdown */}
           <div style={{ position: 'relative', flex: '1 1 280px', maxWidth: 400 }}>
             <div style={{ position: 'relative' }}>
               <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', opacity: .4 }} width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5"/><line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-              <input
-                type="text"
-                placeholder="Digite o nome do paciente..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setDropOpen(true); }}
-                onFocus={() => setDropOpen(true)}
-                onBlur={() => setTimeout(() => setDropOpen(false), 150)}
-                style={{ ...inp, width: '100%', paddingLeft: 38, fontSize: 14 }}
-              />
+              <input type="text" placeholder="Digite o nome do paciente..." value={search} onChange={(e) => { setSearch(e.target.value); setDropOpen(true); }} onFocus={() => setDropOpen(true)} onBlur={() => setTimeout(() => setDropOpen(false), 150)} style={{ ...inp, width: '100%', paddingLeft: 38, fontSize: 14 }} />
             </div>
             {dropOpen && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: 'var(--sf)', border: '1.5px solid var(--p)', borderRadius: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,.3)', marginTop: 4, maxHeight: 260, overflowY: 'auto' }}>
@@ -168,16 +440,11 @@ function BiEvolucao() {
                 ) : searchResults.map((c) => {
                   const sel = selectedChildId === c.id;
                   return (
-                    <div
-                      key={c.id}
-                      onMouseDown={() => { setSelectedChildId(c.id); setSearch(''); setDropOpen(false); }}
+                    <div key={c.id} onMouseDown={() => { setSelectedChildId(c.id); setSearch(''); setDropOpen(false); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', cursor: 'pointer', background: sel ? 'var(--ps)' : 'transparent', borderBottom: '1px solid var(--bdr)', transition: 'background .1s' }}
                       onMouseEnter={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = 'var(--sf2)'; }}
-                      onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
-                    >
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: sel ? 'var(--p)' : 'var(--sf2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: sel ? '#fff' : 'var(--t2)', flexShrink: 0 }}>
-                        {c.name.charAt(0).toUpperCase()}
-                      </div>
+                      onMouseLeave={(e) => { if (!sel) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: sel ? 'var(--p)' : 'var(--sf2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: sel ? '#fff' : 'var(--t2)', flexShrink: 0 }}>{c.name.charAt(0).toUpperCase()}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: sel ? 'var(--p)' : 'var(--t1)' }}>{c.name}</div>
                         <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{c.status === 'ativo' ? 'Em terapia' : c.status}</div>
@@ -189,33 +456,27 @@ function BiEvolucao() {
               </div>
             )}
           </div>
-
-          {/* Card do paciente selecionado */}
           {child ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'var(--ps)', border: '2px solid var(--p)', borderRadius: 12, flex: '0 0 auto' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>
-                {child.name.charAt(0).toUpperCase()}
-              </div>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--p)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#fff' }}>{child.name.charAt(0).toUpperCase()}</div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--p)' }}>{child.name.split(' ').slice(0, 2).join(' ')}</div>
-                <div style={{ fontSize: 11, color: 'var(--p)', opacity: .7, marginTop: 1 }}>Em terapia • {activeChildren.length} paciente{activeChildren.length !== 1 ? 's' : ''} ativo{activeChildren.length !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 11, color: 'var(--p)', opacity: .7, marginTop: 1 }}>Em terapia · {activeChildren.length} ativo{activeChildren.length !== 1 ? 's' : ''}</div>
               </div>
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0' }}>Nenhum paciente selecionado — use a busca ao lado</div>
+            <div style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0' }}>Nenhum paciente selecionado</div>
           )}
         </div>
       </div>
 
       {!child ? (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--t3)', fontSize: 14 }}>
-          Selecione um paciente acima para ver a evolução clínica
-        </div>
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--t3)', fontSize: 14 }}>Selecione um paciente acima</div>
       ) : (
         <>
-          {/* ── Filtro de período ── */}
+          {/* Filtro período */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--sf2)', borderRadius: 10, border: '1px solid var(--bdr)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>Período de análise:</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>Período:</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ ...inp, width: 145 }} />
               <span style={{ color: 'var(--t3)', fontSize: 12, fontWeight: 600 }}>até</span>
@@ -223,15 +484,12 @@ function BiEvolucao() {
             </div>
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
               {[['1m', 1], ['3m', 3], ['6m', 6], ['1 ano', 12]].map(([label, n]) => (
-                <button key={label} onClick={() => setPreset(Number(n))}
-                  style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'var(--sf)', color: 'var(--t2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {label}
-                </button>
+                <button key={label as string} onClick={() => setPreset(Number(n))} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid var(--bdr)', background: 'var(--sf)', color: 'var(--t2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
               ))}
             </div>
           </div>
 
-          {/* ── KPIs ── */}
+          {/* KPIs paciente */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
             <Kpi value={`${sessionStats.presenca}%`} label="Taxa de presença" color={pctColor(sessionStats.presenca)} sub={`${sessionStats.realizadas} de ${sessionStats.total} sessões`} accent={pctColor(sessionStats.presenca)} />
             <Kpi value={sessionStats.realizadas} label="Sessões realizadas" color="#10b981" accent="#10b981" />
@@ -241,10 +499,8 @@ function BiEvolucao() {
             <Kpi value={childEvals.length} label="Avaliações" color="var(--v)" accent="var(--v)" />
           </div>
 
-          {/* ── Gráficos principais ── */}
+          {/* Gráficos */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-
-            {/* Frequência mensal */}
             <Card title="Frequência de sessões" badge="6 meses">
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 120, marginBottom: 10 }}>
                 {sessionsByMonth.map((m) => (
@@ -260,24 +516,21 @@ function BiEvolucao() {
               </div>
               <div style={{ display: 'flex', gap: 14, borderTop: '1px solid var(--bdr)', paddingTop: 12 }}>
                 {[['var(--sf2)', 'Agendadas'], ['#10b981', 'Realizadas']].map(([c, l]) => (
-                  <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--t3)' }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 3, background: c }} />{l}
+                  <div key={l as string} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--t3)' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: c as string }} />{l}
                   </div>
                 ))}
                 <div style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 900, color: pctColor(sessionStats.presenca) }}>{sessionStats.presenca}% presença</div>
               </div>
             </Card>
 
-            {/* Progresso de metas */}
             <Card title="Progresso de metas">
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 16 }}>
                 <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
                   <svg width="80" height="80" viewBox="0 0 80 80">
                     <circle cx="40" cy="40" r="32" fill="none" stroke="var(--sf2)" strokeWidth="9" />
-                    <circle cx="40" cy="40" r="32" fill="none"
-                      stroke={pctColor(goalStats.pct)} strokeWidth="9" strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 32}`}
-                      strokeDashoffset={`${2 * Math.PI * 32 * (1 - goalStats.pct / 100)}`}
+                    <circle cx="40" cy="40" r="32" fill="none" stroke={pctColor(goalStats.pct)} strokeWidth="9" strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 32}`} strokeDashoffset={`${2 * Math.PI * 32 * (1 - goalStats.pct / 100)}`}
                       transform="rotate(-90 40 40)" style={{ transition: 'stroke-dashoffset .6s ease' }} />
                   </svg>
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -323,7 +576,7 @@ function BiEvolucao() {
             </Card>
           </div>
 
-          {/* ── Atividades DTT ── */}
+          {/* DTT */}
           {dttByActivity.length > 0 && (
             <Card title="Atividades DTT — execuções no período" badge={`${dttByActivity.reduce((s, a) => s + a.execs.length, 0)} execuções`}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
@@ -334,7 +587,6 @@ function BiEvolucao() {
                   const avgPct = act.execs.length > 0 ? Math.round(act.execs.reduce((s, e) => s + e.pct, 0) / act.execs.length) : 0;
                   return (
                     <div key={act.nome} style={{ border: '1px solid var(--bdr)', borderRadius: 12, overflow: 'hidden', background: 'var(--sf2)' }}>
-                      {/* Header */}
                       <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--bdr)', display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--sf)' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{act.nome}</div>
@@ -352,21 +604,15 @@ function BiEvolucao() {
                           </div>
                         </div>
                       </div>
-                      {/* Sparkline */}
                       {act.execs.length > 1 && (
                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36, padding: '6px 14px 0' }}>
-                          {[...act.execs].reverse().map((ex, i) => (
-                            <SparkBar key={i} pct={ex.pct} color={pctColor(ex.pct)} />
-                          ))}
+                          {[...act.execs].reverse().map((ex, i) => <SparkBar key={i} pct={ex.pct} color={pctColor(ex.pct)} />)}
                         </div>
                       )}
-                      {/* Executions */}
                       <div>
                         {act.execs.slice(0, 4).map((ex, i) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderTop: '1px solid var(--bdr)', fontSize: 12 }}>
-                            <div style={{ color: 'var(--t3)', flexShrink: 0, width: 78, fontSize: 11 }}>
-                              {new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}
-                            </div>
+                            <div style={{ color: 'var(--t3)', flexShrink: 0, width: 78, fontSize: 11 }}>{new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
                             <div style={{ flex: 1, display: 'flex', gap: 8 }}>
                               <span style={{ color: '#10b981', fontWeight: 700 }}>{ex.acertos} acertos</span>
                               {ex.parciais > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}>{ex.parciais} parciais</span>}
@@ -378,7 +624,7 @@ function BiEvolucao() {
                         ))}
                         {act.execs.length > 4 && (
                           <div style={{ padding: '6px 14px', fontSize: 11, color: 'var(--t3)', borderTop: '1px solid var(--bdr)', textAlign: 'center' }}>
-                            + {act.execs.length - 4} execuções • Média: {avgPct}%
+                            + {act.execs.length - 4} execuções · Média: {avgPct}%
                           </div>
                         )}
                       </div>
@@ -396,7 +642,6 @@ function BiEvolucao() {
             </div>
           )}
 
-          {/* ── Avaliações ── */}
           {childEvals.length > 0 && (
             <Card title="Avaliações realizadas" badge={childEvals.length}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
@@ -407,9 +652,7 @@ function BiEvolucao() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{e.tipo}</div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
-                        {new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{new Date(e.data + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
                       {e.notas && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.notas}</div>}
                     </div>
                   </div>
@@ -425,15 +668,45 @@ function BiEvolucao() {
 
 // ═══ MAIN BI SCREEN ════════════════════════════════════
 export default function BiScreen() {
+  const [activeTab, setActiveTab] = useState<BiTab>('evolucao');
+
+  const tabs: { key: BiTab; label: string; icon: string }[] = [
+    { key: 'evolucao', label: 'Evolução do Paciente', icon: '📈' },
+    { key: 'clinica', label: 'Painel Clínico', icon: '🏥' },
+  ];
+
   return (
     <div className="view show" id="v-bi">
       <div className="page-body">
         <div className="page-hero">
           <div className="ph-pre"><span></span>Analytics</div>
-          <h1 className="ph-title">Evolução Clínica</h1>
-          <div className="ph-sub">Acompanhe o progresso de cada paciente por área e atividade</div>
+          <h1 className="ph-title">BI — Inteligência Clínica</h1>
+          <div className="ph-sub">Evolução de pacientes · Volume de atendimentos · Perfil clínico · Absenteísmo</div>
         </div>
-        <BiEvolucao />
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '1px solid var(--bdr)' }}>
+          {tabs.map(({ key, label, icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                padding: '10px 20px', border: 'none',
+                borderBottom: `2px solid ${activeTab === key ? 'var(--p)' : 'transparent'}`,
+                background: 'none', color: activeTab === key ? 'var(--p)' : 'var(--t2)',
+                fontWeight: activeTab === key ? 700 : 500, fontSize: 14,
+                cursor: 'pointer', fontFamily: 'inherit', marginBottom: -1,
+                display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: 16 }}>{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'evolucao' && <BiEvolucao />}
+        {activeTab === 'clinica' && <BiClinica />}
       </div>
     </div>
   );
