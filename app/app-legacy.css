@@ -716,7 +716,7 @@ select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+x
 .dash-omie{position:relative;min-height:calc(100vh - 58px);display:flex;flex-direction:column;overflow:hidden}
 .dash-bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 900px 700px at -5% -5%,rgba(14,165,233,.45) 0%,transparent 55%),radial-gradient(ellipse 700px 600px at 105% -5%,rgba(139,92,246,.38) 0%,transparent 52%),radial-gradient(ellipse 600px 500px at 50% 110%,rgba(16,185,129,.28) 0%,transparent 55%),radial-gradient(ellipse 400px 300px at 80% 50%,rgba(14,165,233,.12) 0%,transparent 60%),#080F22}
 .dash-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(5,10,30,.55) 0%,rgba(8,15,34,.45) 100%);z-index:1}
-.dash-content{position:relative;z-index:2;padding:52px 56px 48px;display:flex;flex-direction:column;gap:44px;min-height:calc(100vh - 58px)}
+.dash-content{position:relative;z-index:2;padding:40px 40px 48px;display:flex;flex-direction:column;gap:44px;min-height:calc(100vh - 58px)}
 .dash-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
 .dash-greet-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.09em;margin-bottom:14px;backdrop-filter:blur(8px)}
 .dash-greet-h{font-size:52px;font-weight:900;color:#FFFFFF;letter-spacing:-1.2px;line-height:1.05;margin-bottom:10px;text-shadow:0 2px 20px rgba(0,0,0,.25)}
@@ -739,7 +739,7 @@ select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+x
 .tb-back:hover{border-color:var(--pb);color:var(--p);background:var(--ps)}
 
 /* Tiles grid */
-.dash-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:1120px}
+.dash-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;width:100%}
 .dash-tile{border-radius:20px;padding:28px 24px 24px;cursor:pointer;transition:transform .22s cubic-bezier(.34,1.56,.64,1),box-shadow .22s;display:flex;flex-direction:column;align-items:flex-start;gap:14px;border:none;font-family:inherit;text-align:left;position:relative;overflow:hidden;min-height:160px}
 .dash-tile::after{content:'';position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none;transition:transform .3s}
 .dash-tile::before{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at var(--glow-x,25%) var(--glow-y,25%),rgba(255,255,255,.65) 0%,rgba(255,255,255,.2) 45%,transparent 75%);opacity:.3;transition:background .2s ease;pointer-events:none;animation:glow-breathe 4s ease-in-out infinite;z-index:1}
@@ -777,8 +777,8 @@ select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+x
 
 /* Decorative brand shape (like OMIE's triangles) */
 .dash-deco{position:absolute;bottom:0;right:0;pointer-events:none;z-index:1;opacity:.12}
-@media(max-width:1100px){.dash-tiles{grid-template-columns:repeat(2,1fr)}.dash-content{padding:36px 32px}}
-@media(max-width:600px){.dash-tiles{grid-template-columns:1fr}.dash-greet-h{font-size:32px}.dash-content{padding:24px 18px}}
+@media(max-width:768px){.dash-tiles{grid-template-columns:repeat(2,1fr)}.dash-content{padding:28px 20px}}
+@media(max-width:480px){.dash-tiles{grid-template-columns:1fr}.dash-greet-h{font-size:32px}.dash-content{padding:24px 18px}}
 .logo-svg svg{display:block}
 /* ââ ATIVIDADES SYSTEM ââ */
 .ativ-filter-bar{display:flex;gap:8px;flex-wrap:wrap}
@@ -1333,7 +1333,7 @@ select.reg-inp option{background:#0F1829;color:#fff}
 .screen-content::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:6px}
 
 /*    FAMILY PORTAL DASHBOARD    */
-.dash-content{position:relative;z-index:2;padding:52px 56px 48px;display:flex;flex-direction:column;gap:44px;min-height:calc(100vh - 58px);background:linear-gradient(160deg,#06091a 0%,#0a1230 40%,#060c1e 100%)}
+.dash-content{position:relative;z-index:2;padding:40px 40px 48px;display:flex;flex-direction:column;gap:44px;min-height:calc(100vh - 58px);background:linear-gradient(160deg,#06091a 0%,#0a1230 40%,#060c1e 100%)}
 @media(max-width:860px){.dash-content{padding:32px 22px 40px}}
 .dash-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
 .dash-greet-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:99px;padding:5px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.09em;margin-bottom:14px;backdrop-filter:blur(8px)}
@@ -1368,7 +1368,7 @@ select.reg-inp option{background:#0F1829;color:#fff}
 .dt-purple{background:linear-gradient(140deg,#6D28D9 0%,#7C3AED 100%)}
 .dt-red{background:linear-gradient(140deg,#B91C1C 0%,#DC2626 100%)}
 @media(max-width:1100px){.dash-tiles{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.dash-tiles{grid-template-columns:1fr}}
+@media(max-width:480px){.dash-tiles{grid-template-columns:1fr}}
 
 /*    STATS BAR    */
 .dash-stats{display:flex;gap:16px;flex-wrap:wrap}
