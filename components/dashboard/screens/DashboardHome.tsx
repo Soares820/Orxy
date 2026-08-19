@@ -151,7 +151,7 @@ export default function DashboardHome({ onNav }: Props) {
   ];
 
   return (
-    <div className="dash-content">
+    <div className="dash-content" style={{ width: '100%', boxSizing: 'border-box' }}>
       {/* Top area */}
       <div className="dash-top">
         <div>
@@ -183,7 +183,7 @@ export default function DashboardHome({ onNav }: Props) {
       </div>
 
       {/* Colorful tiles grid */}
-      <div className="dash-tiles">
+      <div className="dash-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16, width: '100%', maxWidth: '100%' }}>
         {tiles.filter(t => (TILE_ROLES[t.key] ?? ['admin']).includes(role)).map((tile) => (
           <button
             key={`${tile.key}-${tile.label}`}
