@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import type { Screen } from '@/lib/types';
 
+import SupportChat from '@/components/ui/SupportChat';
 import DashboardHome from '@/components/dashboard/screens/DashboardHome';
 import PacientesScreen from '@/components/dashboard/screens/PacientesScreen';
 import AgendaScreen from '@/components/dashboard/screens/AgendaScreen';
@@ -237,6 +238,7 @@ function AppShell() {
           {SCREENS[screen]}
         </div>
       </div>
+      <SupportChat />
     </div>
   );
 }
