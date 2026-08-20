@@ -684,7 +684,7 @@ export default function FinanceiroScreen() {
 
   const [showExpModal, setShowExpModal] = useState(false);
   const [selectedExp, setSelectedExp] = useState<Despesa | null>(null);
-  const [expForm, setExpForm] = useState({ descricao: '', categoria: 'adm' as Despesa['categoria'], valor: '', mes: new Date().toISOString().slice(0, 7), data: '', status: 'pago' as Despesa['status'], recorrente: false, notas: '' });
+  const [expForm, setExpForm] = useState({ descricao: '', categoria: 'adm' as Despesa['categoria'], valor: '', mes: new Date().toISOString().slice(0, 7), data: '', status: 'pago' as Despesa['status'], recorrente: false, notas: '', fornecedor_id: '' });
   const [expMeses, setExpMeses] = useState(1);
   const [savingExp, setSavingExp] = useState(false);
   const [darBaixaLoading, setDarBaixaLoading] = useState<number | null>(null);
@@ -949,8 +949,8 @@ export default function FinanceiroScreen() {
     }
   }
 
-  function openNewExp() { setSelectedExp(null); setExpForm({ descricao: '', categoria: 'adm', valor: '', mes: monthFilter, data: '', status: 'pago', recorrente: false, notas: '' }); setShowExpModal(true); }
-  function openEditExp(e: Despesa) { setSelectedExp(e); setExpForm({ descricao: e.descricao, categoria: e.categoria, valor: String(e.valor), mes: e.mes, data: e.data ?? '', status: e.status, recorrente: e.recorrente, notas: e.notas ?? '' }); setShowExpModal(true); }
+  function openNewExp() { setSelectedExp(null); setExpForm({ descricao: '', categoria: 'adm', valor: '', mes: monthFilter, data: '', status: 'pago', recorrente: false, notas: '', fornecedor_id: '' }); setShowExpModal(true); }
+  function openEditExp(e: Despesa) { setSelectedExp(e); setExpForm({ descricao: e.descricao, categoria: e.categoria, valor: String(e.valor), mes: e.mes, data: e.data ?? '', status: e.status, recorrente: e.recorrente, notas: e.notas ?? '', fornecedor_id: e.fornecedor_id ? String(e.fornecedor_id) : '' }); setShowExpModal(true); }
 
   async function darBaixaDespesa(e: Despesa) {
     const { supabase } = await import('@/lib/supabase');
@@ -963,7 +963,7 @@ export default function FinanceiroScreen() {
     setSavingExp(true); setSaveError(null);
     try {
       const { supabase } = await import('@/lib/supabase');
-      const basePayload = { clinic_id: state.user?.clinicId, descricao: expForm.descricao, categoria: expForm.categoria, valor: Number(expForm.valor), data: expForm.data || null, status: expForm.status, recorrente: expForm.recorrente, notas: expForm.notas || null };
+      const basePayload = { clinic_id: state.user?.clinicId, descricao: expForm.descricao, categoria: expForm.categoria, valor: Number(expForm.valor), data: expForm.data || null, status: expForm.status, recorrente: expForm.recorrente, notas: expForm.notas || null, fornecedor_id: Number(expForm.fornecedor_id) || null };
       if (selectedExp) {
         const { data: upd, error } = await supabase.from('despesas').update({ ...basePayload, mes: expForm.mes }).eq('id', selectedExp.id).select().single();
         if (error) { setSaveError(error.message); return; }
@@ -1332,7 +1332,7 @@ export default function FinanceiroScreen() {
                   <div style={{ width: 5, height: 36, borderRadius: 3, background: CAT_COLORS[e.categoria] ?? '#6b7280', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)' }}>{e.descricao}</div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>{CAT_LABELS[e.categoria]}{e.recorrente ? ' · Recorrente' : ''}{e.data ? ` · ${e.data}` : ''}</div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>{CAT_LABELS[e.categoria]}{e.recorrente ? ' · Recorrente' : ''}{e.data ? ` · ${e.data}` : ''}{e.fornecedor_id ? ` · ${(data.fornecedores ?? []).find(f => f.id === e.fornecedor_id)?.nome ?? ''}` : ''}</div>
                   </div>
                   <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1)' }}>{formatCurrency(e.valor)}</div>
                   <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, padding: '4px 10px', borderRadius: 20 }}>{statusLabel[e.status]}</span>
@@ -1483,6 +1483,17 @@ export default function FinanceiroScreen() {
                     Recorrente mensal
                   </label>
                 </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Fornecedor</label>
+                <select value={expForm.fornecedor_id} onChange={(e) => setExpForm(f => ({ ...f, fornecedor_id: e.target.value }))} style={{ padding: '10px 13px', border: '1.5px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const }}>
+                  <option value="">Nenhum fornecedor</option>
+                  {(data.fornecedores ?? []).map((f) => {
+                    const FORN_EMOJI: Record<string, string> = { energia: '⚡', agua: '💧', telefone: '📱', internet: '🌐', aluguel: '🏠', material: '📦', contabilidade: '📊', juridico: '⚖️', manutencao: '🔧', equipamentos: '💻', software: '🖥️', folha: '👥', outros: '📋' };
+                    const emoji = FORN_EMOJI[f.categoria] ?? '📋';
+                    return <option key={f.id} value={String(f.id)}>{emoji} {f.nome}</option>;
+                  })}
+                </select>
               </div>
               <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Notas</label><textarea value={expForm.notas} onChange={(e) => setExpForm(f => ({ ...f, notas: e.target.value }))} rows={2} placeholder="Observacoes..." style={{ ...inp, resize: 'vertical' }} /></div>
               {saveError && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#ef4444' }}><strong>Erro:</strong> {saveError}</div>}
