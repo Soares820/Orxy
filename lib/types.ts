@@ -136,7 +136,24 @@ export interface Despesa {
   data?: string | null;
   status: 'pago' | 'pendente';
   recorrente: boolean;
+  fornecedor_id?: number | null;
   notas?: string | null;
+  created_at?: string;
+}
+
+export interface Fornecedor {
+  id: number;
+  clinic_id: string;
+  nome: string;
+  cnpj?: string | null;
+  cpf?: string | null;
+  categoria: 'energia' | 'agua' | 'telefone' | 'internet' | 'aluguel' | 'material' | 'contabilidade' | 'juridico' | 'manutencao' | 'equipamentos' | 'software' | 'folha' | 'outros';
+  email?: string | null;
+  telefone?: string | null;
+  contato?: string | null;
+  endereco?: string | null;
+  notas?: string | null;
+  status: 'ativo' | 'inativo';
   created_at?: string;
 }
 
@@ -165,6 +182,7 @@ export type Screen =
   | 'equipe'
   | 'avaliacoes'
   | 'questionarios'
+  | 'fornecedores'
   | 'reavix'
   | 'portal'
   | 'conta';
@@ -205,6 +223,7 @@ export interface AppData {
   team: Funcionario[];
   profiles: Usuario[];
   expenses: Despesa[];
+  fornecedores: Fornecedor[];
 }
 
 export interface AppUser {

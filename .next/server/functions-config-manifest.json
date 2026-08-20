@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/api/invite":{},"/api/blog-cron":{},"/api/webhook":{},"/":{},"/api/email":{},"/privacidade":{},"/termos":{}}}
+{"version":1,"functions":{"/api/email":{},"/api/invite":{},"/api/blog-cron":{},"/api/fix":{},"/api/provision":{},"/api/reset":{},"/api/webhook":{},"/":{},"/privacidade":{},"/termos":{}}}

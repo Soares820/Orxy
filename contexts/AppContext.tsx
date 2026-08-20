@@ -23,6 +23,7 @@ const EMPTY_DATA: AppData = {
   team: [],
   profiles: [],
   expenses: [],
+  fornecedores: [],
 };
 
 const initialState: AppState = {
@@ -122,7 +123,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadUserData = useCallback(async (clinicId: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const [pac, sess, cont, pag, met, aval, func, usuarios, desp] = await Promise.allSettled([
+      const [pac, sess, cont, pag, met, aval, func, usuarios, desp, forn] = await Promise.allSettled([
         supabase.from('pacientes').select('*').eq('clinic_id', clinicId).order('name'),
         supabase.from('sessoes').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
         supabase.from('contratos').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
@@ -132,6 +133,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('funcionarios').select('*').eq('clinic_id', clinicId).order('nome'),
         supabase.from('users').select('*').eq('clinic_id', clinicId).order('nome'),
         supabase.from('despesas').select('*').eq('clinic_id', clinicId).order('mes', { ascending: false }),
+        supabase.from('fornecedores').select('*').eq('clinic_id', clinicId).eq('status', 'ativo').order('nome'),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -141,15 +143,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({
         type: 'SET_DATA',
         payload: {
-          children:    pick(pac as PromiseSettledResult<{ data: unknown[] | null }>),
-          sessions:    pick(sess as PromiseSettledResult<{ data: unknown[] | null }>),
-          contracts:   pick(cont as PromiseSettledResult<{ data: unknown[] | null }>),
-          payments:    pick(pag as PromiseSettledResult<{ data: unknown[] | null }>),
-          goals:       pick(met as PromiseSettledResult<{ data: unknown[] | null }>),
-          evaluations: pick(aval as PromiseSettledResult<{ data: unknown[] | null }>),
-          team:        pick(func as PromiseSettledResult<{ data: unknown[] | null }>),
-          profiles:    pick(usuarios as PromiseSettledResult<{ data: unknown[] | null }>),
-          expenses:    pick(desp as PromiseSettledResult<{ data: unknown[] | null }>),
+          children:     pick(pac as PromiseSettledResult<{ data: unknown[] | null }>),
+          sessions:     pick(sess as PromiseSettledResult<{ data: unknown[] | null }>),
+          contracts:    pick(cont as PromiseSettledResult<{ data: unknown[] | null }>),
+          payments:     pick(pag as PromiseSettledResult<{ data: unknown[] | null }>),
+          goals:        pick(met as PromiseSettledResult<{ data: unknown[] | null }>),
+          evaluations:  pick(aval as PromiseSettledResult<{ data: unknown[] | null }>),
+          team:         pick(func as PromiseSettledResult<{ data: unknown[] | null }>),
+          profiles:     pick(usuarios as PromiseSettledResult<{ data: unknown[] | null }>),
+          expenses:     pick(desp as PromiseSettledResult<{ data: unknown[] | null }>),
+          fornecedores: pick(forn as PromiseSettledResult<{ data: unknown[] | null }>),
         },
       });
     } catch (e) {

@@ -19,6 +19,7 @@ import ContaScreen from '@/components/dashboard/screens/ContaScreen';
 import PeiScreen from '@/components/dashboard/screens/PeiScreen';
 import AvaliacoesScreen from '@/components/dashboard/screens/AvaliacoesScreen';
 import QuestionariosScreen from '@/components/dashboard/screens/QuestionariosScreen';
+import FornecedoresScreen from '@/components/dashboard/screens/FornecedoresScreen';
 
 const SCREEN_META: Record<Screen, { title: string; sub: string }> = {
   dashboard: { title: 'Início', sub: 'Bem-vindo(a) ao ORYX' },
@@ -30,6 +31,7 @@ const SCREEN_META: Record<Screen, { title: string; sub: string }> = {
   financeiro: { title: 'Financeiro', sub: 'Contratos e pagamentos' },
   bi: { title: 'Evolução Clínica', sub: 'Indicadores e progresso clínico' },
   equipe: { title: 'Equipe', sub: 'Terapeutas e funcionários' },
+  fornecedores: { title: 'Fornecedores', sub: 'Empresas e prestadores de serviço' },
   reavix: { title: 'Assistente Clínico', sub: 'Suporte especializado ABA/TEA' },
   portal: { title: 'Portal Família', sub: 'Acompanhamento das famílias' },
   conta: { title: 'Minha Conta', sub: 'Configurações e plano' },
@@ -133,6 +135,7 @@ const SCREEN_ROLES: Record<Screen, string[]> = {
   financeiro:   ['admin', 'financeiro'],
   bi:           ['admin', 'financeiro'],
   equipe:       ['admin'],
+  fornecedores: ['admin', 'financeiro'],
   reavix:       ['admin', 'terapeuta'],
   portal:       ['admin', 'terapeuta', 'familia'],
   conta:        ['admin', 'terapeuta', 'recepcao', 'financeiro'],
@@ -220,6 +223,7 @@ function AppShell() {
     financeiro: <FinanceiroScreen />,
     bi: <BiScreen />,
     equipe: <EquipeScreen />,
+    fornecedores: <FornecedoresScreen />,
     reavix: <ReavixScreen />,
     portal: <PortalScreen onNav={navigate} />,
     conta: <ContaScreen />,
