@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatDate } from '@/lib/utils';
+import { exportToExcel, exportToCSV, parseFile, mapPaciente as mapPacienteRow } from '@/lib/xlsx-utils';
 import type { Paciente } from '@/lib/types';
 
 type FilterStatus = 'todos' | 'ativo' | 'inativo';
@@ -26,6 +27,11 @@ export default function PacientesScreen() {
   const [saveError, setSaveError] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importRows, setImportRows] = useState<ReturnType<typeof mapPacienteRow>[]>([]);
+  const [importState, setImportState] = useState<'idle' | 'preview' | 'importing' | 'done'>('idle');
+  const [importResult, setImportResult] = useState<{ ok: number; err: number } | null>(null);
 
   const filtered = useMemo(() => {
     return data.children.filter((c) => {
@@ -136,6 +142,65 @@ export default function PacientesScreen() {
     }
   }
 
+  function handleExportExcel() {
+    const rows = data.children.map((p) => ({
+      Codigo: p.codigo ?? '', Nome: p.name, Nascimento: p.dob ?? '',
+      Diagnostico: p.diagnosis ?? '', Responsavel: p.responsible ?? '',
+      Pai: p.pai_nome ?? '', Mae: p.mae_nome ?? '',
+      Email_responsavel: p.email_responsavel ?? '', Status: p.status, Observacoes: p.notes ?? '',
+    }));
+    exportToExcel(rows, 'pacientes', 'Pacientes');
+  }
+
+  function handleExportCSV() {
+    const rows = data.children.map((p) => ({
+      Codigo: p.codigo ?? '', Nome: p.name, Nascimento: p.dob ?? '',
+      Diagnostico: p.diagnosis ?? '', Responsavel: p.responsible ?? '',
+      Pai: p.pai_nome ?? '', Mae: p.mae_nome ?? '',
+      Email_responsavel: p.email_responsavel ?? '', Status: p.status, Observacoes: p.notes ?? '',
+    }));
+    exportToCSV(rows, 'pacientes');
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const raw = await parseFile(file);
+    const mapped = raw.map(mapPacienteRow).filter((r) => r.name.trim());
+    setImportRows(mapped);
+    setImportResult(null);
+    setImportState('preview');
+  }
+
+  async function handleConfirmImport() {
+    setImportState('importing');
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) return;
+      const { data: userRow } = await supabase.from('users').select('clinic_id').eq('auth_id', uid).single();
+      const clinic_id = userRow?.clinic_id;
+      let ok = 0; let err = 0;
+      for (const row of importRows) {
+        const { data: created, error } = await supabase.from('pacientes').insert({
+          name: row.name, dob: row.dob || null, sex: row.sex || null,
+          diagnosis: row.diagnosis || null, responsible: row.responsible || null,
+          pai_nome: row.pai_nome || null, mae_nome: row.mae_nome || null,
+          email_responsavel: row.email_responsavel || null, therapist: row.therapist || null,
+          notes: row.notes || null, status: 'ativo', clinic_id, codigo: gerarCodigo(),
+        }).select().single();
+        if (error) err++;
+        else if (created) { dispatch({ type: 'ADD_CHILD', payload: created }); ok++; }
+      }
+      setImportResult({ ok, err });
+    } finally {
+      setImportRows([]);
+      setImportState('done');
+    }
+  }
+
   const calcAge = (dob: string) => {
     if (!dob) return null;
     const d = new Date(dob);
@@ -182,7 +247,40 @@ export default function PacientesScreen() {
             ))}
           </div>
           <button className="btn-p" onClick={openNew}>+ Novo paciente</button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              onClick={handleExportExcel}
+              title="Exportar Excel"
+              style={{ padding: '8px 12px', border: '1px solid var(--bdr)', borderRadius: 8, background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Excel
+            </button>
+            <button
+              onClick={handleExportCSV}
+              title="Exportar CSV"
+              style={{ padding: '8px 12px', border: '1px solid var(--bdr)', borderRadius: 8, background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              CSV
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              title="Importar planilha"
+              style={{ padding: '8px 12px', border: '1px solid var(--p)', borderRadius: 8, background: 'var(--ps)', color: 'var(--p)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importar
+            </button>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleFileSelect} />
+          </div>
         </div>
+        {importResult && importState === 'done' && (
+          <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 12, background: importResult.err === 0 ? 'rgba(16,185,129,.1)' : 'rgba(245,158,11,.1)', border: `1px solid ${importResult.err === 0 ? 'rgba(16,185,129,.25)' : 'rgba(245,158,11,.25)'}`, color: importResult.err === 0 ? '#10b981' : '#f59e0b', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>✓ {importResult.ok} paciente(s) importado(s){importResult.err > 0 ? ` · ${importResult.err} erro(s)` : ''}</span>
+            <button onClick={() => setImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
+          </div>
+        )}
 
         {/* Grid */}
         {filtered.length === 0 ? (
@@ -231,6 +329,40 @@ export default function PacientesScreen() {
           </div>
         )}
       </div>
+
+      {/* Import Preview Modal */}
+      {(importState === 'preview' || importState === 'importing') && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => importState === 'preview' && setImportState('idle')}>
+          <div style={{ background: 'var(--bg)', borderRadius: 20, width: '100%', maxWidth: 560, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg,#2563eb,#7c3aed)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div style={{ flex: 1, color: '#fff' }}>
+                <div style={{ fontWeight: 800, fontSize: 16 }}>Importar pacientes</div>
+                <div style={{ fontSize: 12, opacity: .8 }}>{importRows.length} linha(s) encontrada(s) com nome válido</div>
+              </div>
+              {importState === 'preview' && <button onClick={() => setImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 30, height: 30, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+            </div>
+            <div style={{ padding: '16px 24px', maxHeight: '50vh', overflowY: 'auto' }}>
+              <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>Prévia das primeiras linhas:</div>
+              {importRows.slice(0, 8).map((r, i) => (
+                <div key={i} style={{ padding: '8px 10px', background: 'var(--sf)', borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{r.name}</div>
+                  <div style={{ color: 'var(--t3)', fontSize: 12 }}>
+                    {[r.dob && `Nasc: ${r.dob}`, r.diagnosis && `Diag: ${r.diagnosis}`, r.responsible && `Resp: ${r.responsible}`].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+              ))}
+              {importRows.length > 8 && <div style={{ fontSize: 12, color: 'var(--t3)', textAlign: 'center', marginTop: 6 }}>... e mais {importRows.length - 8} registro(s)</div>}
+            </div>
+            <div style={{ padding: '14px 24px', borderTop: '1px solid var(--bdr)', display: 'flex', gap: 10 }}>
+              <button onClick={() => setImportState('idle')} disabled={importState === 'importing'} style={{ flex: 1, padding: '10px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={handleConfirmImport} disabled={importState === 'importing'} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg,#2563eb,#7c3aed)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: importState === 'importing' ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: importState === 'importing' ? .7 : 1 }}>
+                {importState === 'importing' ? 'Importando...' : `Importar ${importRows.length} paciente(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (

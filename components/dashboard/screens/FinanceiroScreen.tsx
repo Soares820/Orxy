@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatCurrency, MONTH_NAMES, getLastNMonths } from '@/lib/utils';
+import { exportToExcel, exportToCSV, parseFile, mapDespesa, mapPagamento } from '@/lib/xlsx-utils';
 import type { Pagamento, Contrato, Despesa } from '@/lib/types';
 
 type TabType = 'pagamentos' | 'contratos' | 'despesas' | 'dre' | 'bi';
@@ -688,6 +689,15 @@ export default function FinanceiroScreen() {
   const [savingExp, setSavingExp] = useState(false);
   const [darBaixaLoading, setDarBaixaLoading] = useState<number | null>(null);
 
+  const despFileRef = useRef<HTMLInputElement>(null);
+  const pagFileRef = useRef<HTMLInputElement>(null);
+  const [despImportRows, setDespImportRows] = useState<ReturnType<typeof mapDespesa>[]>([]);
+  const [pagImportRows, setPagImportRows] = useState<ReturnType<typeof mapPagamento>[]>([]);
+  const [despImportState, setDespImportState] = useState<'idle' | 'preview' | 'importing' | 'done'>('idle');
+  const [pagImportState, setPagImportState] = useState<'idle' | 'preview' | 'importing' | 'done'>('idle');
+  const [despImportResult, setDespImportResult] = useState<{ ok: number; err: number } | null>(null);
+  const [pagImportResult, setPagImportResult] = useState<{ ok: number; err: number } | null>(null);
+
   const months6 = useMemo(() => getLastNMonths(6), []);
   const months12 = useMemo(() => getLastNMonths(12), []);
 
@@ -799,6 +809,80 @@ export default function FinanceiroScreen() {
       setShowContractModal(false);
     } catch (err: unknown) { setSaveError(err instanceof Error ? err.message : 'Erro'); }
     finally { setSavingContract(false); }
+  }
+
+  async function handleDespFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return; e.target.value = '';
+    const raw = await parseFile(file);
+    const mapped = raw.map(mapDespesa).filter((r) => r.descricao.trim() && r.valor > 0);
+    setDespImportRows(mapped); setDespImportResult(null); setDespImportState('preview');
+  }
+
+  async function handleConfirmDespImport() {
+    setDespImportState('importing');
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const clinic_id = state.user?.clinicId;
+      let ok = 0; let err = 0;
+      for (const row of despImportRows) {
+        const { data: created, error } = await supabase.from('despesas').insert({
+          descricao: row.descricao, categoria: (row.categoria as Despesa['categoria']) || 'outros',
+          valor: row.valor, mes: row.mes, data: row.data || null,
+          status: row.status as Despesa['status'], recorrente: false,
+          notas: row.notas || null, clinic_id,
+        }).select().single();
+        if (error) err++; else if (created) { dispatch({ type: 'ADD_EXPENSE', payload: created }); ok++; }
+      }
+      setDespImportResult({ ok, err });
+    } finally { setDespImportRows([]); setDespImportState('done'); }
+  }
+
+  async function handlePagFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return; e.target.value = '';
+    const raw = await parseFile(file);
+    const mapped = raw.map(mapPagamento).filter((r) => r.child_name.trim() && r.valor_previsto > 0);
+    setPagImportRows(mapped); setPagImportResult(null); setPagImportState('preview');
+  }
+
+  async function handleConfirmPagImport() {
+    setPagImportState('importing');
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const clinic_id = state.user?.clinicId;
+      let ok = 0; let err = 0;
+      for (const row of pagImportRows) {
+        const child = data.children.find((c) => c.name.toLowerCase().includes(row.child_name.toLowerCase().slice(0, 6)));
+        if (!child) { err++; continue; }
+        const { data: created, error } = await supabase.from('pagamentos').insert({
+          child_id: child.id, clinic_id, mes: row.mes,
+          valor_previsto: row.valor_previsto, valor_recebido: row.valor_recebido,
+          status: row.status as Pagamento['status'], data_pag: row.data_pag || null,
+        }).select().single();
+        if (error) err++; else if (created) { dispatch({ type: 'ADD_PAYMENT', payload: created }); ok++; }
+      }
+      setPagImportResult({ ok, err });
+    } finally { setPagImportRows([]); setPagImportState('done'); }
+  }
+
+  function handleExportDespesas() {
+    const rows = data.expenses.map((e) => ({
+      Descricao: e.descricao, Categoria: CAT_LABELS[e.categoria] ?? e.categoria,
+      Valor: e.valor, Mes: e.mes, Data: e.data ?? '', Status: e.status,
+      Recorrente: e.recorrente ? 'Sim' : 'Nao', Notas: e.notas ?? '',
+    }));
+    exportToExcel(rows, 'despesas', 'Despesas');
+  }
+
+  function handleExportPagamentos() {
+    const rows = data.payments.map((p) => {
+      const child = data.children.find((c) => c.id === p.child_id);
+      return {
+        Paciente: child?.name ?? `#${p.child_id}`, Mes: p.mes,
+        Valor_Previsto: p.valor_previsto, Valor_Recebido: p.valor_recebido,
+        Status: p.status, Data_Pagamento: p.data_pag ?? '',
+      };
+    });
+    exportToCSV(rows, 'recebimentos');
   }
 
   async function darBaixaContrato(c: Contrato) {
@@ -1145,9 +1229,37 @@ export default function FinanceiroScreen() {
             <select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit' }}>
               {monthOptions.map((o) => <option key={o.val} value={o.val}>{o.label}</option>)}
             </select>
-            {tab === 'pagamentos' && <button className="btn-p" onClick={openNewPay} style={{ marginLeft: 'auto' }}>+ Cobrar pagamento</button>}
-            {tab === 'despesas' && <button className="btn-p" onClick={openNewExp} style={{ marginLeft: 'auto' }}>+ Nova despesa</button>}
+            {tab === 'pagamentos' && (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button onClick={handleExportPagamentos} style={{ padding: '8px 11px', border: '1px solid var(--bdr)', borderRadius: 8, background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>↓ CSV</button>
+                <button onClick={() => pagFileRef.current?.click()} style={{ padding: '8px 11px', border: '1px solid var(--p)', borderRadius: 8, background: 'var(--ps)', color: 'var(--p)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>↑ Importar</button>
+                <input ref={pagFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handlePagFileSelect} />
+                <button className="btn-p" onClick={openNewPay}>+ Cobrar</button>
+              </div>
+            )}
+            {tab === 'despesas' && (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button onClick={handleExportDespesas} style={{ padding: '8px 11px', border: '1px solid var(--bdr)', borderRadius: 8, background: 'none', color: 'var(--t2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>↓ Excel</button>
+                <button onClick={() => despFileRef.current?.click()} style={{ padding: '8px 11px', border: '1px solid var(--p)', borderRadius: 8, background: 'var(--ps)', color: 'var(--p)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>↑ Importar</button>
+                <input ref={despFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleDespFileSelect} />
+                <button className="btn-p" onClick={openNewExp}>+ Nova despesa</button>
+              </div>
+            )}
             {tab === 'contratos' && <button className="btn-p" onClick={() => { setSaveError(null); setShowContractModal(true); }} style={{ marginLeft: 'auto' }}>+ Novo contrato</button>}
+          </div>
+        )}
+
+        {/* Import result banners */}
+        {pagImportResult && pagImportState === 'done' && tab === 'pagamentos' && (
+          <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 10, background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.25)', color: '#10b981', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+            <span>✓ {pagImportResult.ok} recebimento(s) importado(s){pagImportResult.err > 0 ? ` · ${pagImportResult.err} não encontrado(s)` : ''}</span>
+            <button onClick={() => setPagImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
+          </div>
+        )}
+        {despImportResult && despImportState === 'done' && tab === 'despesas' && (
+          <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 10, background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.25)', color: '#10b981', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+            <span>✓ {despImportResult.ok} despesa(s) importada(s){despImportResult.err > 0 ? ` · ${despImportResult.err} erro(s)` : ''}</span>
+            <button onClick={() => setDespImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
           </div>
         )}
 
@@ -1379,6 +1491,79 @@ export default function FinanceiroScreen() {
                 <button type="submit" disabled={savingExp} className="btn-p" style={{ flex: 2 }}>{savingExp ? 'Salvando...' : selectedExp ? 'Salvar' : 'Lancar despesa'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Despesas Import Preview Modal */}
+      {(despImportState === 'preview' || despImportState === 'importing') && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => despImportState === 'preview' && setDespImportState('idle')}>
+          <div style={{ background: 'var(--bg)', borderRadius: 20, width: '100%', maxWidth: 520, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', padding: '18px 22px', color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📥</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Importar despesas</div>
+                <div style={{ fontSize: 12, opacity: .8 }}>{despImportRows.length} lançamento(s) encontrado(s)</div>
+              </div>
+              {despImportState === 'preview' && <button onClick={() => setDespImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+            </div>
+            <div style={{ padding: '14px 20px', maxHeight: '45vh', overflowY: 'auto' }}>
+              {despImportRows.slice(0, 8).map((r, i) => (
+                <div key={i} style={{ padding: '8px 10px', background: 'var(--sf)', borderRadius: 8, marginBottom: 6, fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{r.descricao}</div>
+                    <div style={{ color: 'var(--t3)', fontSize: 12 }}>{CAT_LABELS[r.categoria] ?? r.categoria} · {r.mes}</div>
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--t1)', flexShrink: 0, marginLeft: 10 }}>{formatCurrency(r.valor)}</div>
+                </div>
+              ))}
+              {despImportRows.length > 8 && <div style={{ fontSize: 12, color: 'var(--t3)', textAlign: 'center' }}>... e mais {despImportRows.length - 8}</div>}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--bdr)', display: 'flex', gap: 10 }}>
+              <button onClick={() => setDespImportState('idle')} disabled={despImportState === 'importing'} style={{ flex: 1, padding: '10px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={handleConfirmDespImport} disabled={despImportState === 'importing'} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#db2777)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: despImportState === 'importing' ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: despImportState === 'importing' ? .7 : 1 }}>
+                {despImportState === 'importing' ? 'Importando...' : `Importar ${despImportRows.length} despesa(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pagamentos Import Preview Modal */}
+      {(pagImportState === 'preview' || pagImportState === 'importing') && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => pagImportState === 'preview' && setPagImportState('idle')}>
+          <div style={{ background: 'var(--bg)', borderRadius: 20, width: '100%', maxWidth: 520, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg,#059669,#2563eb)', padding: '18px 22px', color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📥</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Importar recebimentos</div>
+                <div style={{ fontSize: 12, opacity: .8 }}>{pagImportRows.length} registro(s) encontrado(s)</div>
+              </div>
+              {pagImportState === 'preview' && <button onClick={() => setPagImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+            </div>
+            <div style={{ padding: '10px 18px 0', background: 'transparent' }}>
+              <div style={{ padding: '10px 12px', background: 'rgba(245,158,11,.08)', borderLeft: '3px solid #f59e0b', borderRadius: 6, fontSize: 12, color: 'var(--t2)' }}>
+                O paciente será vinculado pelo nome. Cadastre os pacientes antes de importar.
+              </div>
+            </div>
+            <div style={{ padding: '14px 20px', maxHeight: '40vh', overflowY: 'auto' }}>
+              {pagImportRows.slice(0, 8).map((r, i) => (
+                <div key={i} style={{ padding: '8px 10px', background: 'var(--sf)', borderRadius: 8, marginBottom: 6, fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--t1)' }}>{r.child_name}</div>
+                    <div style={{ color: 'var(--t3)', fontSize: 12 }}>{r.mes} · {r.status}</div>
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--t1)', flexShrink: 0, marginLeft: 10 }}>{formatCurrency(r.valor_previsto)}</div>
+                </div>
+              ))}
+              {pagImportRows.length > 8 && <div style={{ fontSize: 12, color: 'var(--t3)', textAlign: 'center' }}>... e mais {pagImportRows.length - 8}</div>}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--bdr)', display: 'flex', gap: 10 }}>
+              <button onClick={() => setPagImportState('idle')} disabled={pagImportState === 'importing'} style={{ flex: 1, padding: '10px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={handleConfirmPagImport} disabled={pagImportState === 'importing'} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg,#059669,#2563eb)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: pagImportState === 'importing' ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: pagImportState === 'importing' ? .7 : 1 }}>
+                {pagImportState === 'importing' ? 'Importando...' : `Importar ${pagImportRows.length} registro(s)`}
+              </button>
+            </div>
           </div>
         </div>
       )}

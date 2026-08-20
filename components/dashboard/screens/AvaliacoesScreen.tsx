@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatDate } from '@/lib/utils';
+import { parseFile, mapAvaliacao } from '@/lib/xlsx-utils';
 import type { Avaliacao } from '@/lib/types';
 
 type TipoAvaliacao = Avaliacao['tipo'];
@@ -212,6 +213,10 @@ export default function AvaliacoesScreen() {
   const [importing, setImporting] = useState(false);
   const [importMsg, setImportMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
+  const xlsxFileRef = useRef<HTMLInputElement>(null);
+  const [xlsxImportRows, setXlsxImportRows] = useState<ReturnType<typeof mapAvaliacao>[]>([]);
+  const [xlsxImportState, setXlsxImportState] = useState<'idle' | 'preview' | 'importing'>('idle');
+
   // Inicializa o paciente selecionado quando os dados carregam
   useEffect(() => {
     if (!selectedChildId && data.children.length > 0) {
@@ -371,6 +376,41 @@ export default function AvaliacoesScreen() {
     }
   }
 
+  async function handleXlsxFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return; e.target.value = '';
+    const raw = await parseFile(file);
+    const mapped = raw.map(mapAvaliacao).filter((r) => r.child_name.trim());
+    setXlsxImportRows(mapped);
+    setXlsxImportState('preview');
+  }
+
+  async function handleConfirmXlsxImport() {
+    setXlsxImportState('importing');
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const clinic_id = state.user?.clinicId;
+      let ok = 0; let err = 0;
+      for (const row of xlsxImportRows) {
+        const child = data.children.find((c) => c.name.toLowerCase().includes(row.child_name.toLowerCase().slice(0, 6)));
+        const child_id = child?.id ?? selectedChildId;
+        if (!child_id) { err++; continue; }
+        const { data: created, error } = await supabase.from('avaliacoes').insert({
+          clinic_id, child_id,
+          tipo: TIPOS.includes(row.tipo as TipoAvaliacao) ? row.tipo : 'Personalizado',
+          data: row.data || new Date().toISOString().slice(0, 10),
+          notas: row.notas || null,
+          scores: row.scores,
+        }).select().single();
+        if (error) err++; else if (created) { dispatch({ type: 'SET_DATA', payload: { evaluations: [created, ...data.evaluations] } }); ok++; }
+      }
+      setImportMsg({ type: 'ok', text: `${ok} avaliação(ões) importada(s)${err > 0 ? ` · ${err} erro(s)` : ''}` });
+    } catch {
+      setImportMsg({ type: 'err', text: 'Erro ao importar planilha.' });
+    } finally {
+      setXlsxImportRows([]); setXlsxImportState('idle');
+    }
+  }
+
   const evalsByTipo = useMemo(() => {
     const map: Record<string, Avaliacao[]> = {};
     for (const e of childEvals) {
@@ -406,12 +446,20 @@ export default function AvaliacoesScreen() {
               {childEvals.length} avaliação(ões)
             </span>
           )}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid var(--bdr)', background: 'var(--sf)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, opacity: importing ? .6 : 1 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               {importing ? 'Importando...' : 'Importar JSON'}
               <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} disabled={importing} />
             </label>
+            <button
+              onClick={() => xlsxFileRef.current?.click()}
+              style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid var(--p)', background: 'var(--ps)', color: 'var(--p)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importar Excel
+            </button>
+            <input ref={xlsxFileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleXlsxFileSelect} />
             <button className="btn-p" onClick={openNew}>+ Nova avaliação</button>
           </div>
         </div>
@@ -612,6 +660,45 @@ export default function AvaliacoesScreen() {
                 </div>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Excel Import Preview Modal */}
+      {(xlsxImportState === 'preview' || xlsxImportState === 'importing') && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={() => xlsxImportState === 'preview' && setXlsxImportState('idle')}>
+          <div style={{ background: 'var(--bg)', borderRadius: 20, width: '100%', maxWidth: 520, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ background: 'linear-gradient(135deg,#0891b2,#7c3aed)', padding: '18px 22px', color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📊</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Importar avaliações — Excel/CSV</div>
+                <div style={{ fontSize: 12, opacity: .8 }}>{xlsxImportRows.length} registro(s) encontrado(s)</div>
+              </div>
+              {xlsxImportState === 'preview' && <button onClick={() => setXlsxImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+            </div>
+            <div style={{ padding: '10px 18px 0' }}>
+              <div style={{ padding: '10px 12px', background: 'rgba(245,158,11,.08)', borderLeft: '3px solid #f59e0b', borderRadius: 6, fontSize: 12, color: 'var(--t2)' }}>
+                Colunas esperadas: paciente, tipo, data, notas. Demais colunas viram scores. Se o paciente não for encontrado, usa o selecionado.
+              </div>
+            </div>
+            <div style={{ padding: '14px 20px', maxHeight: '40vh', overflowY: 'auto' }}>
+              {xlsxImportRows.slice(0, 8).map((r, i) => (
+                <div key={i} style={{ padding: '8px 10px', background: 'var(--sf)', borderRadius: 8, marginBottom: 6, fontSize: 13, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.child_name || '(paciente selecionado)'}</div>
+                    <div style={{ color: 'var(--t3)', fontSize: 12 }}>{r.tipo} · {r.data || 'sem data'}</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0 }}>{Object.keys(r.scores).length} scores</div>
+                </div>
+              ))}
+              {xlsxImportRows.length > 8 && <div style={{ fontSize: 12, color: 'var(--t3)', textAlign: 'center' }}>... e mais {xlsxImportRows.length - 8}</div>}
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--bdr)', display: 'flex', gap: 10 }}>
+              <button onClick={() => setXlsxImportState('idle')} disabled={xlsxImportState === 'importing'} style={{ flex: 1, padding: '10px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={handleConfirmXlsxImport} disabled={xlsxImportState === 'importing'} style={{ flex: 2, padding: '10px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg,#0891b2,#7c3aed)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: xlsxImportState === 'importing' ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: xlsxImportState === 'importing' ? .7 : 1 }}>
+                {xlsxImportState === 'importing' ? 'Importando...' : `Importar ${xlsxImportRows.length} avaliação(ões)`}
+              </button>
+            </div>
           </div>
         </div>
       )}
