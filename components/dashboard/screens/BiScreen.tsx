@@ -130,11 +130,20 @@ function BiClinica() {
   const byDiag = useMemo(() => {
     const map: Record<string, number> = {};
     data.children.forEach((c) => {
-      const diag = c.diagnosis?.trim() || 'Não informado';
-      const key = diag.split(' ')[0].toUpperCase().slice(0, 8);
+      const raw = (c.diagnosis?.trim() ?? '').toUpperCase();
+      let key: string;
+      if (!raw) {
+        key = 'Não informado';
+      } else if (raw.includes('TEA') || raw.includes('AUTIS') || raw.includes('ESPECTRO') || raw.includes('TRANSTORNO GLOBAL')) {
+        key = 'TEA';
+      } else if (raw.includes('TDAH') || raw === 'TDA' || raw.includes('DEFICIT DE ATEN') || raw.includes('DÉFICIT DE ATEN')) {
+        key = 'TDAH';
+      } else {
+        key = (c.diagnosis?.trim() ?? 'Outro').slice(0, 20);
+      }
       map[key] = (map[key] ?? 0) + 1;
     });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
   }, [data.children]);
 
   // ── Absenteísmo por mês ────────────────────────────────
@@ -150,12 +159,70 @@ function BiClinica() {
     };
   }), [months6, data.sessions]);
 
+  // ── Receita por status ─────────────────────────────────
+  const receitaByStatus = useMemo(() => {
+    const labels: Record<string, string> = { recebido: 'Recebido', pendente: 'Pendente', inadimplente: 'Inadimplente', parcial: 'Parcial' };
+    const colors: Record<string, string> = { recebido: '#10b981', pendente: '#f59e0b', inadimplente: '#ef4444', parcial: '#06b6d4' };
+    const map: Record<string, { count: number; previsto: number; recebido: number }> = {};
+    ['recebido', 'pendente', 'inadimplente', 'parcial'].forEach((s) => { map[s] = { count: 0, previsto: 0, recebido: 0 }; });
+    data.payments.forEach((p) => {
+      if (map[p.status]) {
+        map[p.status].count++;
+        map[p.status].previsto += p.valor_previsto;
+        map[p.status].recebido += p.valor_recebido;
+      }
+    });
+    const total = Object.values(map).reduce((s, v) => s + v.previsto, 0);
+    const items = Object.entries(map).map(([s, v]) => ({ status: s, label: labels[s], color: colors[s], ...v }));
+    return { items, total };
+  }, [data.payments]);
+
+  // ── Avaliações por instrumento ─────────────────────────
+  const avaliacoesByTipo = useMemo(() => {
+    const map: Record<string, number> = {};
+    data.evaluations.forEach((e) => {
+      const tipo = e.tipo?.trim() || 'Outro';
+      map[tipo] = (map[tipo] ?? 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [data.evaluations]);
+
+  // ── Pacientes por status clínico ───────────────────────
+  const pacientesByStatus = useMemo(() => ({
+    ativo:  data.children.filter((c) => c.status === 'ativo').length,
+    inativo: data.children.filter((c) => c.status === 'inativo').length,
+    alta:   data.children.filter((c) => c.status === 'alta').length,
+  }), [data.children]);
+
+  // ── Tendência de novos pacientes ───────────────────────
+  const tendenciaPacientes = useMemo(() => months6.map((m) => ({
+    label: MONTH_NAMES[parseInt(m.slice(5, 7)) - 1].slice(0, 3),
+    count: data.children.filter((c) => c.created_at?.startsWith(m)).length,
+  })), [months6, data.children]);
+  const hasCreatedAt = data.children.some((c) => !!c.created_at);
+  const maxTend = Math.max(...tendenciaPacientes.map((t) => t.count), 1);
+
+  // ── Totais importados ──────────────────────────────────
+  const temDadosImportados = data.children.length + data.payments.length + data.evaluations.length > 0;
+
   const DIAG_COLORS = ['var(--p)', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
   const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
   void inp;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* ── Dados importados ── */}
+      {temDadosImportados && (
+        <Card title="Dados importados" badge="visão geral">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12 }}>
+            <Kpi value={data.children.length} label="Pacientes" color="#3b82f6" accent="#3b82f6" />
+            <Kpi value={data.payments.length} label="Pagamentos" color="#10b981" accent="#10b981" />
+            <Kpi value={data.evaluations.length} label="Avaliações" color="#8b5cf6" accent="#8b5cf6" />
+            <Kpi value={data.expenses.length} label="Despesas" color="#f59e0b" accent="#f59e0b" />
+          </div>
+        </Card>
+      )}
 
       {/* ── KPIs ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
@@ -166,6 +233,25 @@ function BiClinica() {
         <Kpi value={`${kpis.absenteismo}%`} label="Taxa absenteísmo" color={pctColor(100 - kpis.absenteismo)} sub="Faltas + cancelamentos" accent={kpis.absenteismo > 20 ? '#ef4444' : '#10b981'} />
         <Kpi value={kpis.mediaSemanais} label="Sessões/semana (média 3m)" color="var(--v)" accent="var(--v)" />
       </div>
+
+      {/* ── Pacientes por status ── */}
+      {data.children.length > 0 && (
+        <Card title="Pacientes por status" badge={data.children.length}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {([
+              { label: 'Ativos', count: pacientesByStatus.ativo, color: '#10b981' },
+              { label: 'Inativos', count: pacientesByStatus.inativo, color: '#f59e0b' },
+              { label: 'Alta', count: pacientesByStatus.alta, color: '#8b5cf6' },
+            ] as const).map(({ label, count, color }) => (
+              <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 12px', background: 'var(--sf2)', borderRadius: 10, border: `1px solid ${color}30` }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: color }} />
+                <div style={{ fontSize: 28, fontWeight: 900, color, lineHeight: 1 }}>{count}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* ── Volume mensal ── */}
       <Card title="Volume de sessões — 6 meses" badge={`${data.sessions.length} total`}>
@@ -313,6 +399,80 @@ function BiClinica() {
                     <div style={{ height: '100%', width: `${(count / maxTipo) * 100}%`, background: DIAG_COLORS[i % DIAG_COLORS.length], borderRadius: 4, transition: 'width .4s ease' }} />
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Receita por status ── */}
+      {data.payments.length > 0 && (
+        <Card title="Receita por status" badge={`${data.payments.length} pagamentos`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            {receitaByStatus.items.filter((s) => s.count > 0).map((s) => {
+              const pct = receitaByStatus.total > 0 ? Math.round((s.previsto / receitaByStatus.total) * 100) : 0;
+              return (
+                <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                  <div style={{ width: 90, fontSize: 12, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>{s.label}</div>
+                  <div style={{ flex: 1, height: 9, background: 'var(--sf2)', borderRadius: 5, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: s.color, borderRadius: 5, transition: 'width .4s ease' }} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', flexShrink: 0, width: 22, textAlign: 'right' }}>{s.count}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: s.color, flexShrink: 0, textAlign: 'right', minWidth: 95 }}>
+                    {s.recebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
+                </div>
+              );
+            })}
+            {receitaByStatus.total > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--bdr)', fontSize: 13 }}>
+                <span style={{ fontWeight: 700, color: 'var(--t2)' }}>Total previsto</span>
+                <span style={{ fontWeight: 900, color: 'var(--t1)' }}>
+                  {receitaByStatus.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Avaliações por instrumento ── */}
+      {data.evaluations.length > 0 && (
+        <Card title="Avaliações por instrumento" badge={data.evaluations.length}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {avaliacoesByTipo.map(([tipo, count], i) => {
+              const pct = Math.round((count / data.evaluations.length) * 100);
+              return (
+                <div key={tipo} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 8, background: DIAG_COLORS[i % DIAG_COLORS.length] + '20', border: `1px solid ${DIAG_COLORS[i % DIAG_COLORS.length]}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: DIAG_COLORS[i % DIAG_COLORS.length], flexShrink: 0 }}>
+                    {tipo.slice(0, 4).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tipo}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t1)', flexShrink: 0, marginLeft: 8 }}>{count}</div>
+                    </div>
+                    <div style={{ height: 7, background: 'var(--sf2)', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: DIAG_COLORS[i % DIAG_COLORS.length], borderRadius: 4, transition: 'width .4s ease' }} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Tendência de novos pacientes ── */}
+      {hasCreatedAt && (
+        <Card title="Novos pacientes — 6 meses">
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100, marginBottom: 10 }}>
+            {tendenciaPacientes.map((m) => (
+              <div key={m.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, height: '100%', justifyContent: 'flex-end' }}>
+                {m.count > 0 && <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{m.count}</div>}
+                <div style={{ width: '100%', height: `${Math.max((m.count / maxTend) * 100, m.count > 0 ? 5 : 0)}%`, background: '#3b82f6', borderRadius: '4px 4px 0 0', transition: 'height .4s ease', minHeight: m.count > 0 ? 4 : 0 }} />
+                <div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 600 }}>{m.label}</div>
               </div>
             ))}
           </div>
