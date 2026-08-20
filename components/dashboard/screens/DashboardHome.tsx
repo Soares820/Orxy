@@ -183,7 +183,7 @@ export default function DashboardHome({ onNav }: Props) {
       </div>
 
       {/* Colorful tiles grid */}
-      <div className="dash-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16, width: '100%', maxWidth: '100%' }}>
+      <div className="dash-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, width: '100%' }}>
         {tiles.filter(t => (TILE_ROLES[t.key] ?? ['admin']).includes(role)).map((tile) => (
           <button
             key={`${tile.key}-${tile.label}`}
