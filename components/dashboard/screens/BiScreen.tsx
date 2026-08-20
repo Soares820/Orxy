@@ -168,8 +168,8 @@ function BiClinica() {
     data.payments.forEach((p) => {
       if (map[p.status]) {
         map[p.status].count++;
-        map[p.status].previsto += p.valor_previsto;
-        map[p.status].recebido += p.valor_recebido;
+        map[p.status].previsto += p.valor_previsto ?? 0;
+        map[p.status].recebido += p.valor_recebido ?? 0;
       }
     });
     const total = Object.values(map).reduce((s, v) => s + v.previsto, 0);
@@ -203,7 +203,7 @@ function BiClinica() {
   const maxTend = Math.max(...tendenciaPacientes.map((t) => t.count), 1);
 
   // ── Totais importados ──────────────────────────────────
-  const temDadosImportados = data.children.length + data.payments.length + data.evaluations.length > 0;
+  const temDadosImportados = data.children.length + data.payments.length + data.evaluations.length + data.expenses.length > 0;
 
   const DIAG_COLORS = ['var(--p)', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
   const inp: React.CSSProperties = { background: 'var(--sf2)', border: '1.5px solid var(--bdr)', borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--t1)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' };
