@@ -10,11 +10,11 @@ export const metadata: Metadata = {
   title: 'ORYX — Software para Terapia ABA',
 };
 
-const STATS = [
-  { n: '+1.800', l: 'Famílias atendidas' },
-  { n: '+420',   l: 'Clínicas parceiras' },
-  { n: '+28.000', l: 'Avaliações realizadas' },
-  { n: '4.9★',  l: 'Avaliação média' },
+const DIFERENCIAIS = [
+  { n: '3 escalas',  l: 'Avaliações validadas' },
+  { n: 'Tempo real', l: 'BI e evolução clínica' },
+  { n: '24/7',       l: 'Chat família-clínica' },
+  { n: 'LGPD',       l: 'Dados criptografados' },
 ];
 
 export default function HomePage() {
@@ -33,10 +33,10 @@ export default function HomePage() {
         {/* Hero */}
         <LandingHero />
 
-        {/* Stats */}
+        {/* Diferenciais */}
         <div className="lp-stats-wrap">
           <div className="lp-stats">
-            {STATS.map((s) => (
+            {DIFERENCIAIS.map((s) => (
               <div key={s.l}>
                 <div className="lp-stat-n">{s.n}</div>
                 <div className="lp-stat-l">{s.l}</div>
