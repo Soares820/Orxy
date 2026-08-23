@@ -1,4 +1,6 @@
-:root {
+/* Scoped to .blog-page (not :root) so these tokens don't leak into other
+   routes' shared --bg/--text/etc. via client-side navigation. */
+.blog-page {
   --bg: #0a0f1e;
   --card: #111827;
   --card-hover: #161e30;
@@ -12,7 +14,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  :root {
+  .blog-page {
     --bg: #f1f5f9;
     --card: #ffffff;
     --card-hover: #f8fafc;
@@ -26,7 +28,7 @@
   }
 }
 
-:root[data-theme="light"] {
+body[data-theme="light"] .blog-page {
   --bg: #f1f5f9;
   --card: #ffffff;
   --card-hover: #f8fafc;
@@ -39,7 +41,7 @@
   --tag-text: #1e40af;
 }
 
-:root[data-theme="dark"] {
+body[data-theme="dark"] .blog-page {
   --bg: #0a0f1e;
   --card: #111827;
   --card-hover: #161e30;
@@ -52,9 +54,9 @@
   --tag-text: #93c5fd;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.blog-page, .blog-page *, .blog-page *::before, .blog-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+.blog-page {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;

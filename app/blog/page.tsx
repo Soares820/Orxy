@@ -59,9 +59,9 @@ export default function BlogPage() {
   }, [posts, filter, search]);
 
   return (
-    <>
+    <div className="blog-page">
       {/* NAV */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--bg)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--bg)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', padding: '10px 20px', minHeight: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, rowGap: 8, flexWrap: 'wrap' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <Image src="/logo.png" alt="ORYX" width={36} height={36} style={{ borderRadius: 10, overflow: 'hidden' }} />
           <div>
@@ -69,7 +69,7 @@ export default function BlogPage() {
             <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--accent)', letterSpacing: '.5px', textTransform: 'uppercase' }}>Blog Científico</div>
           </div>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <Link href="/" style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', padding: '6px 14px', borderRadius: 8, fontSize: 13, textDecoration: 'none' }}>← Início</Link>
           <Link href="/login" style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>Acessar Plataforma</Link>
         </div>
@@ -206,6 +206,6 @@ export default function BlogPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

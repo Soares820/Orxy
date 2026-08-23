@@ -38,6 +38,7 @@ export default function ReavixScreen() {
     const userMsg: Message = { role: 'user', content: msg, ts: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
 
     try {
@@ -74,8 +75,9 @@ export default function ReavixScreen() {
   }
 
   function formatContent(text: string) {
-    // Simple markdown-like rendering
-    return text
+    // Escapa HTML antes de aplicar as substituições de markdown simples,
+    // já que o conteúdo (incluindo resposta da IA) é renderizado via dangerouslySetInnerHTML
+    return escHtml(text)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/`(.+?)`/g, '<code style="background:var(--sf2);padding:2px 5px;border-radius:4px;font-family:monospace;font-size:0.88em">$1</code>')
@@ -173,7 +175,14 @@ export default function ReavixScreen() {
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              const el = textareaRef.current;
+              if (el) {
+                el.style.height = 'auto';
+                el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+              }
+            }}
             onKeyDown={handleKey}
             placeholder="Pergunte sobre ABA, TEA, programas terapêuticos... (Enter para enviar)"
             rows={1}

@@ -24,7 +24,11 @@ function createToast(message: string, type: ToastType = 'info', duration = 3500)
 
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.innerHTML = `<span>${ICONS[type]}</span><span>${message}</span>`;
+  const iconEl = document.createElement('span');
+  iconEl.textContent = ICONS[type];
+  const msgEl = document.createElement('span');
+  msgEl.textContent = message;
+  el.append(iconEl, msgEl);
   container.appendChild(el);
 
   setTimeout(() => {

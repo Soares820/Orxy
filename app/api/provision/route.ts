@@ -31,7 +31,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, existing: true, user: existing, clinic });
   }
 
-  // Cria clínica
+  const VALID_ROLES = ['admin', 'terapeuta', 'recepcao', 'financeiro', 'familia'];
+
+  // Usuário veio de um convite (/api/invite grava clinic_id/role/nome/cargo no user_metadata)
+  // — deve entrar na clínica que o convidou, não criar uma nova.
+  const inviteClinicId = user.user_metadata?.clinic_id as string | undefined;
+  if (inviteClinicId) {
+    const { data: inviteClinic } = await supabase
+      .from('clinics')
+      .select('*')
+      .eq('id', inviteClinicId)
+      .single();
+
+    if (inviteClinic) {
+      const role = VALID_ROLES.includes(user.user_metadata?.role) ? user.user_metadata.role : 'terapeuta';
+      const nome = user.user_metadata?.nome ?? user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Membro';
+
+      const { data: memberUser, error: memberErr } = await supabase
+        .from('users')
+        .insert({
+          auth_id: user.id,
+          clinic_id: inviteClinic.id,
+          nome,
+          email: user.email ?? '',
+          role,
+          cargo: user.user_metadata?.cargo ?? undefined,
+          status: 'ativo',
+        })
+        .select()
+        .single();
+
+      if (memberErr || !memberUser) {
+        return NextResponse.json({ error: 'Erro ao vincular usuário convidado: ' + memberErr?.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ ok: true, existing: false, user: memberUser, clinic: inviteClinic });
+    }
+    // Clínica do convite não existe mais (removida) — cai para fluxo de auto-cadastro abaixo.
+  }
+
+  // Auto-cadastro (sem convite): cria clínica nova
   const clinicName = user.user_metadata?.clinic_name
     ?? user.user_metadata?.full_name
     ?? user.email?.split('@')[0]

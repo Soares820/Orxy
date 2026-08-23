@@ -82,7 +82,7 @@ function SelectPacienteModal({ atividade, pacientes, onSelect, onClose }: {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
       <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 400, boxShadow: 'var(--sh-xl)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
+        <button onClick={onClose} aria-label="Fechar" style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
 
         {step === 'select' ? (
           <>
@@ -225,7 +225,7 @@ function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
       <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 360, boxShadow: 'var(--sh-xl)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
+        <button onClick={onClose} aria-label="Fechar" style={{ position: 'absolute', top: 16, right: 16, background: 'var(--sf2)', border: 'none', color: 'var(--t2)', cursor: 'pointer', fontSize: 18, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', fontWeight: 700, lineHeight: 1 }}>×</button>
 
         {/* Paciente + categoria */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -489,11 +489,11 @@ export default function PeiScreen() {
             <h1 style={{ fontSize: 32, fontWeight: 900, color: 'var(--t1)', margin: 0, letterSpacing: '-.5px' }}>Atividades</h1>
             <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>Selecione uma atividade para executar e registrar as tentativas em tempo real</div>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
               <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar atividade..."
-                style={{ paddingLeft: 36, paddingRight: 14, height: 38, border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', width: 200, outline: 'none' }} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar atividade..." aria-label="Buscar atividade"
+                style={{ paddingLeft: 36, paddingRight: 14, height: 38, border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', outline: 'none' }} />
             </div>
             <button className="btn-p" onClick={() => { setEditingCustom(null); setNewForm({ nome: '', descricao: '', categoria: 'Comunicação' }); setShowNewModal(true); }}>
               + Nova Atividade
@@ -581,7 +581,7 @@ export default function PeiScreen() {
           <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 22, padding: 28, width: '100%', maxWidth: 460, boxShadow: 'var(--sh-xl)' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
               <h2 style={{ fontWeight: 900, fontSize: 20, color: 'var(--t1)', margin: 0 }}>{editingCustom ? 'Editar atividade' : 'Nova atividade'}</h2>
-              <button onClick={() => setShowNewModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+              <button onClick={() => setShowNewModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
             </div>
             <form onSubmit={handleSaveNew} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>

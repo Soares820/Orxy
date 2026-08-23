@@ -45,12 +45,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { message, history = [] } = body;
 
-    if (!message) {
+    if (typeof message !== 'string' || !message.trim()) {
       return NextResponse.json({ error: 'Mensagem obrigatória' }, { status: 400 });
     }
+    if (message.length > 4000) {
+      return NextResponse.json({ error: 'Mensagem muito longa (máx. 4000 caracteres)' }, { status: 400 });
+    }
+
+    const safeHistory = Array.isArray(history)
+      ? history.filter(
+          (m): m is { role: 'user' | 'assistant'; content: string } =>
+            !!m && typeof m === 'object' &&
+            (m.role === 'user' || m.role === 'assistant') &&
+            typeof m.content === 'string' && m.content.length <= 4000
+        ).slice(-10)
+      : [];
 
     const messages = [
-      ...history.slice(-10),
+      ...safeHistory,
       { role: 'user', content: message },
     ];
 

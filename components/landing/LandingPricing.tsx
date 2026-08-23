@@ -69,7 +69,7 @@ export default function LandingPricing() {
 
   function handleCta(plan: typeof PLANS[0]) {
     if (plan.name === 'Clínica Pro') {
-      window.open('https://wa.me/5511999999999?text=Olá!%20Quero%20conhecer%20o%20plano%20Clínica%20Pro%20da%20T.O%20Plataforma', '_blank');
+      window.open('https://wa.me/5541999177922?text=Olá!%20Quero%20conhecer%20o%20plano%20Clínica%20Pro%20da%20ORYX', '_blank');
     } else {
       router.push('/register');
     }
@@ -117,7 +117,7 @@ export default function LandingPricing() {
           </span>
           <button
             style={{ background: 'none', border: 'none', fontSize: 13, color: 'rgba(255,255,255,.5)', cursor: 'pointer', fontFamily: 'inherit' }}
-            onClick={() => window.open('https://wa.me/5511999999999', '_blank')}
+            onClick={() => window.open('https://wa.me/5541999177922', '_blank')}
           >
             Falar com consultor →
           </button>

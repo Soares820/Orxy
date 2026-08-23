@@ -53,6 +53,20 @@ function Topbar({
   const meta = SCREEN_META[screen];
   const isHome = screen === 'dashboard' || screen === 'portal';
 
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [notifOpen]);
+
   return (
     <div className="topbar">
       <div className="tb-l">
@@ -84,12 +98,34 @@ function Topbar({
       </div>
 
       <div className="tb-r">
-        <button className="tb-btn" style={{ display: 'flex', gap: 6 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
-          </svg>
-          <span className="tb-lbl">Notificações</span>
-        </button>
+        <div ref={notifRef} style={{ position: 'relative' }}>
+          <button
+            className="tb-btn"
+            style={{ display: 'flex', gap: 6 }}
+            onClick={() => setNotifOpen((v) => !v)}
+            aria-haspopup="true"
+            aria-expanded={notifOpen}
+            aria-label="Notificações"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" />
+            </svg>
+            <span className="tb-lbl">Notificações</span>
+          </button>
+          {notifOpen && (
+            <div
+              role="menu"
+              style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0, minWidth: 240,
+                background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 12,
+                boxShadow: 'var(--sh-lg)', padding: '14px 16px', zIndex: 300,
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Notificações</div>
+              <div style={{ fontSize: 12, color: 'var(--t3)' }}>Nenhuma notificação no momento.</div>
+            </div>
+          )}
+        </div>
 
         <button
           className="tb-ico"
@@ -117,9 +153,9 @@ function Topbar({
           <span className="tb-lbl">Sair</span>
         </button>
 
-        <div className="tb-avatar" onClick={() => onNav('conta')} title="Minha conta">
+        <button className="tb-avatar" onClick={() => onNav('conta')} title="Minha conta" aria-label="Minha conta">
           {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
-        </div>
+        </button>
       </div>
     </div>
   );

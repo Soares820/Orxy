@@ -237,7 +237,7 @@ function BiClinica() {
       {/* ── Pacientes por status ── */}
       {data.children.length > 0 && (
         <Card title="Pacientes por status" badge={data.children.length}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
             {([
               { label: 'Ativos', count: pacientesByStatus.ativo, color: '#10b981' },
               { label: 'Inativos', count: pacientesByStatus.inativo, color: '#f59e0b' },
@@ -278,7 +278,7 @@ function BiClinica() {
       </Card>
 
       {/* ── Por profissional + Absenteísmo ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 }}>
 
         {/* Sessões por profissional */}
         <Card title="Sessões por profissional">
@@ -336,7 +336,7 @@ function BiClinica() {
       </div>
 
       {/* ── Perfil pacientes ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 }}>
 
         {/* Faixa etária */}
         <Card title="Perfil etário dos pacientes" badge={`${data.children.length} pacientes`}>
@@ -525,7 +525,7 @@ function BiEvolucao() {
   }, [filteredSessions]);
 
   const sessionsByMonth = useMemo(() => months.map((m) => {
-    const ms = childSessions.filter((s) => s.data.startsWith(m));
+    const ms = childSessions.filter((s) => s.data?.startsWith(m));
     return {
       label: MONTH_NAMES[parseInt(m.slice(5, 7)) - 1].slice(0, 3),
       total: ms.length,
@@ -548,8 +548,8 @@ function BiEvolucao() {
 
   const dttByActivity = useMemo(() => {
     const dttSessions = filteredSessions
-      .filter((s) => s.tipo.startsWith('DTT - '))
-      .sort((a, b) => b.data.localeCompare(a.data));
+      .filter((s) => s.tipo?.startsWith('DTT - '))
+      .sort((a, b) => (b.data ?? '').localeCompare(a.data ?? ''));
     const map: Record<string, { nome: string; categoria: string; execs: Array<{ data: string; acertos: number; parciais: number; erros: number; total: number; pct: number; obs?: string }> }> = {};
     dttSessions.forEach((s) => {
       const nome = s.tipo.slice(5);
@@ -660,7 +660,7 @@ function BiEvolucao() {
           </div>
 
           {/* Gráficos */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 }}>
             <Card title="Frequência de sessões" badge="6 meses">
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 120, marginBottom: 10 }}>
                 {sessionsByMonth.map((m) => (
@@ -845,7 +845,7 @@ export default function BiScreen() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '1px solid var(--bdr)' }}>
+        <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '1px solid var(--bdr)', overflowX: 'auto' }}>
           {tabs.map(({ key, label, icon }) => (
             <button
               key={key}

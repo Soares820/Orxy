@@ -466,7 +466,7 @@ export default function AvaliacoesScreen() {
         {importMsg && (
           <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: importMsg.type === 'ok' ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)', border: `1px solid ${importMsg.type === 'ok' ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)'}`, fontSize: 13, fontWeight: 600, color: importMsg.type === 'ok' ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {importMsg.text}
-            <button onClick={() => setImportMsg(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+            <button onClick={() => setImportMsg(null)} aria-label="Fechar" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
           </div>
         )}
 
@@ -530,6 +530,9 @@ export default function AvaliacoesScreen() {
 
               return (
                 <div key={a.id} onClick={() => openEdit(a)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(a); } }}
                   style={{ padding: '16px 18px', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 14, cursor: 'pointer', transition: 'border-color .15s' }}
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--p)')}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bdr)')}>
@@ -571,7 +574,7 @@ export default function AvaliacoesScreen() {
               <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>
                 {selectedAval ? 'Editar avaliação' : 'Nova avaliação'}
               </h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+              <button onClick={() => setShowModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -674,7 +677,7 @@ export default function AvaliacoesScreen() {
                 <div style={{ fontWeight: 800, fontSize: 15 }}>Importar avaliações — Excel/CSV</div>
                 <div style={{ fontSize: 12, opacity: .8 }}>{xlsxImportRows.length} registro(s) encontrado(s)</div>
               </div>
-              {xlsxImportState === 'preview' && <button onClick={() => setXlsxImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+              {xlsxImportState === 'preview' && <button onClick={() => setXlsxImportState('idle')} aria-label="Fechar" style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
             </div>
             <div style={{ padding: '10px 18px 0' }}>
               <div style={{ padding: '10px 12px', background: 'rgba(245,158,11,.08)', borderLeft: '3px solid #f59e0b', borderRadius: 6, fontSize: 12, color: 'var(--t2)' }}>

@@ -1,7 +1,7 @@
 // Utilitários gerais do sistema
 
-export function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+export function formatCurrency(value: number | null | undefined): string {
+  return (value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 export function formatDate(iso: string | null | undefined, opts?: Intl.DateTimeFormatOptions): string {

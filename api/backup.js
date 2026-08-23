@@ -1,21 +1,27 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://sceqtztqdmflabdvrzwt.supabase.co',
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
 );
 
-// Cron: runs daily at 03:00 UTC via vercel.json
-// Also callable manually via POST /api/backup (admin only)
+// Callable manually via POST /api/backup, or by Vercel Cron (GET) if configured
+// in vercel.json — NOT currently scheduled there. Auth is required on every
+// method: this reads every table with the service-role key (bypasses RLS),
+// so it must never be reachable without BACKUP_SECRET, regardless of verb.
 module.exports = async (req, res) => {
-  // Allow Vercel cron (GET) or manual trigger (POST with secret)
-  if (req.method === 'POST') {
-    const secret = req.headers['x-backup-secret'] || req.body?.secret;
-    if (secret !== process.env.BACKUP_SECRET) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  } else if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).end();
+  }
+
+  const expected = process.env.BACKUP_SECRET;
+  if (!expected) {
+    // Fail closed: an unset secret must never mean "no auth required".
+    return res.status(500).json({ error: 'BACKUP_SECRET not configured' });
+  }
+  const secret = req.headers['x-backup-secret'] || req.body?.secret || req.query?.secret;
+  if (secret !== expected) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {

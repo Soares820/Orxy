@@ -413,9 +413,13 @@ export default function QuestionariosScreen() {
           <div style={{ fontSize: 12, color: 'var(--t3)' }}>{pac?.name}</div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
         {Object.values(INSTRUMENTOS).map(i => (
-          <div key={i.id} onClick={() => iniciarQuestionario(i.id)} style={{ background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 14, padding: 20, cursor: 'pointer', transition: '.2s', borderLeft: `4px solid ${i.cor}` }}
+          <div key={i.id} onClick={() => iniciarQuestionario(i.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); iniciarQuestionario(i.id); } }}
+            style={{ background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 14, padding: 20, cursor: 'pointer', transition: '.2s', borderLeft: `4px solid ${i.cor}` }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = i.cor)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bdr)')}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -450,7 +454,7 @@ export default function QuestionariosScreen() {
         </div>
 
         {/* Metadados */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20, background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 12, padding: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20, background: 'var(--sf2)', border: '1px solid var(--bdr)', borderRadius: 12, padding: 16 }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.5px' }}>Data</div>
             <input type="date" value={dataAval} onChange={e => setDataAval(e.target.value)} style={{ background: 'var(--bg)', border: '1px solid var(--bdr)', borderRadius: 8, padding: '6px 10px', fontSize: 13, color: 'var(--t1)', width: '100%' }} />
@@ -697,7 +701,11 @@ export default function QuestionariosScreen() {
       {/* Cards de instrumentos disponíveis */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
         {Object.values(INSTRUMENTOS).map(i => (
-          <div key={i.id} onClick={() => iniciarQuestionario(i.id)} style={{ background: 'var(--sf2)', border: `1px solid ${i.cor}44`, borderRadius: 10, padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: '.15s' }}
+          <div key={i.id} onClick={() => iniciarQuestionario(i.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); iniciarQuestionario(i.id); } }}
+            style={{ background: 'var(--sf2)', border: `1px solid ${i.cor}44`, borderRadius: 10, padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, transition: '.15s' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = i.cor)}
             onMouseLeave={e => (e.currentTarget.style.borderColor = i.cor + '44')}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: i.cor }} />
@@ -736,8 +744,8 @@ export default function QuestionariosScreen() {
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={() => { setViewItem(h); setFase('visualizar'); }} style={{ background: 'none', border: '1px solid var(--bdr)', color: 'var(--t2)', padding: '5px 12px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>Ver</button>
-                  <button onClick={() => exportarJSON(h)} style={{ background: 'none', border: '1px solid var(--bdr)', color: 'var(--t2)', padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>⬇</button>
-                  <button onClick={() => deletarItem(h.id)} style={{ background: 'none', border: '1px solid var(--bdr)', color: '#ef4444', padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>✕</button>
+                  <button onClick={() => exportarJSON(h)} aria-label="Exportar avaliação" title="Exportar" style={{ background: 'none', border: '1px solid var(--bdr)', color: 'var(--t2)', padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>⬇</button>
+                  <button onClick={() => deletarItem(h.id)} aria-label="Excluir avaliação" title="Excluir" style={{ background: 'none', border: '1px solid var(--bdr)', color: '#ef4444', padding: '5px 10px', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>✕</button>
                 </div>
               </div>
             );

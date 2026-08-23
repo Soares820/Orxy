@@ -110,15 +110,18 @@ export default function FornecedoresScreen() {
   const lbl = s({ fontSize: 11, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.07em' });
 
   return (
-    <div style={{ padding: '32px 36px', maxWidth: 1100, margin: '0 auto' }}>
+    <div className="view show" id="v-fornecedores">
+      <div className="page-body">
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)', margin: 0 }}>Fornecedores</h1>
-          <p style={{ fontSize: 13, color: 'var(--t3)', margin: '4px 0 0' }}>Empresas e prestadores de serviço da clínica</p>
-        </div>
-        <button onClick={openNew} style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,var(--p),var(--v))', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}>
+      <div className="page-hero">
+        <div className="ph-pre"><span></span>Financeiro &amp; BI</div>
+        <h1 className="ph-title">Fornecedores</h1>
+        <div className="ph-sub">Empresas e prestadores de serviço da clínica</div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 4, flexWrap: 'wrap', gap: 10 }}>
+        <button onClick={openNew} style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,var(--p),var(--v))', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo fornecedor
         </button>
@@ -137,7 +140,7 @@ export default function FornecedoresScreen() {
       </div>
 
       {/* Stats rápidos */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, marginBottom: 24 }}>
         {[
           { label: 'Total', val: fornecedores.filter(f=>f.status==='ativo').length, color: '#3b82f6' },
           { label: 'Serviços', val: fornecedores.filter(f=>['energia','agua','telefone','internet','aluguel','software','manutencao'].includes(f.categoria)).length, color: '#8b5cf6' },
@@ -173,10 +176,10 @@ export default function FornecedoresScreen() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => openEdit(f)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--bdr)', background: 'var(--sf2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => openEdit(f)} title="Editar fornecedor" aria-label="Editar fornecedor" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--bdr)', background: 'var(--sf2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button onClick={() => handleDelete(f)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(239,68,68,.3)', background: 'rgba(239,68,68,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => handleDelete(f)} title="Remover fornecedor" aria-label="Remover fornecedor" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid rgba(239,68,68,.3)', background: 'rgba(239,68,68,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                     </button>
                   </div>
@@ -200,7 +203,7 @@ export default function FornecedoresScreen() {
           <div style={{ background: 'var(--sf)', borderRadius: 20, width: '100%', maxWidth: 560, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.5)' }}>
             <div style={{ background: 'linear-gradient(135deg,var(--p),var(--v))', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ color: '#fff', fontWeight: 800, fontSize: 17 }}>{editing ? 'Editar fornecedor' : 'Novo fornecedor'}</div>
-              <button onClick={() => setShowModal(false)} style={{ background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setShowModal(false)} title="Fechar" aria-label="Fechar" style={{ background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -255,6 +258,7 @@ export default function FornecedoresScreen() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

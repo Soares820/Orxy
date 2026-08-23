@@ -18,6 +18,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [invitePassword, setInvitePassword] = useState('');
   const [inviteConfirm, setInviteConfirm] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   // Detecta chegada via link de convite (Supabase seta sessão automaticamente)
   useEffect(() => {
@@ -225,12 +227,12 @@ export default function RegisterPage() {
                 )}
                 <div className="l-field">
                   <label className="l-lbl">E-mail *</label>
-                  <input className="l-inp" type="email" placeholder="seu@email.com.br"
+                  <input className="l-inp" type="email" placeholder="seu@email.com.br" autoComplete="email"
                     value={form.email} onChange={e => update('email', e.target.value)} required />
                 </div>
                 <div className="l-field">
                   <label className="l-lbl">WhatsApp</label>
-                  <input className="l-inp" type="tel" placeholder="(11) 99999-9999"
+                  <input className="l-inp" type="tel" placeholder="(11) 99999-9999" autoComplete="tel"
                     value={form.phone} onChange={e => update('phone', e.target.value)} />
                 </div>
 
@@ -248,12 +250,25 @@ export default function RegisterPage() {
 
                 <div className="l-field">
                   <label className="l-lbl">Senha *</label>
-                  <input className="l-inp" type="password" placeholder="Mínimo 6 caracteres"
-                    value={form.password} onChange={e => update('password', e.target.value)} required autoFocus />
+                  <div style={{ position: 'relative' }}>
+                    <input className="l-inp" type={showPass ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" autoComplete="new-password"
+                      value={form.password} onChange={e => update('password', e.target.value)} required autoFocus style={{ paddingRight: 44 }} />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                      style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                    >
+                      {showPass
+                        ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      }
+                    </button>
+                  </div>
                 </div>
                 <div className="l-field">
                   <label className="l-lbl">Confirmar senha *</label>
-                  <input className="l-inp" type="password" placeholder="Repita a senha"
+                  <input className="l-inp" type={showPass ? 'text' : 'password'} placeholder="Repita a senha" autoComplete="new-password"
                     value={form.confirm} onChange={e => update('confirm', e.target.value)} required />
                 </div>
 

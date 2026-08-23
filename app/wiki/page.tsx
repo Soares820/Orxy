@@ -51,20 +51,26 @@ export default function WikiPage() {
   );
 
   return (
-    <>
+    <div className="wiki-page">
       <style>{`
-        :root{--bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#F1F5F9;--p:#1c3d7a;--acc:#3B82F6;--s:#10b981;--v:#7c3aed;--w:#f59e0b;--t1:#0F172A;--t2:#334155;--t3:#64748B;--t4:#94A3B8;--bdr:#E2E8F0;--bdr2:#CBD5E1;--ag:rgba(59,130,246,0.1);--sw:260px;}
-        @media(prefers-color-scheme:dark){:root{--bg:#060C18;--bg2:#0D1829;--bg3:#0F2040;--t1:#F1F5F9;--t2:#CBD5E1;--t3:#94A3B8;--t4:#64748B;--bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);--ag:rgba(59,130,246,0.18);}}
-        :root[data-theme="light"]{--bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#F1F5F9;--t1:#0F172A;--t2:#334155;--t3:#64748B;--t4:#94A3B8;--bdr:#E2E8F0;--bdr2:#CBD5E1;--ag:rgba(59,130,246,0.1);}
-        :root[data-theme="dark"]{--bg:#060C18;--bg2:#0D1829;--bg3:#0F2040;--t1:#F1F5F9;--t2:#CBD5E1;--t3:#94A3B8;--t4:#64748B;--bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);--ag:rgba(59,130,246,0.18);}
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-        html,body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;font-size:14px;}
-        code{font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--v);}
+        /* Scoped to .wiki-page (not :root) so these tokens don't leak into
+           other routes' shared --bg/--t1/--t2/--t3/--bdr via client-side navigation. */
+        .wiki-page{--bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#F1F5F9;--p:#1c3d7a;--acc:#3B82F6;--s:#10b981;--v:#7c3aed;--w:#f59e0b;--t1:#0F172A;--t2:#334155;--t3:#64748B;--t4:#94A3B8;--bdr:#E2E8F0;--bdr2:#CBD5E1;--ag:rgba(59,130,246,0.1);--sw:260px;}
+        @media(prefers-color-scheme:dark){.wiki-page{--bg:#060C18;--bg2:#0D1829;--bg3:#0F2040;--t1:#F1F5F9;--t2:#CBD5E1;--t3:#94A3B8;--t4:#64748B;--bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);--ag:rgba(59,130,246,0.18);}}
+        body[data-theme="light"] .wiki-page{--bg:#F8FAFC;--bg2:#FFFFFF;--bg3:#F1F5F9;--t1:#0F172A;--t2:#334155;--t3:#64748B;--t4:#94A3B8;--bdr:#E2E8F0;--bdr2:#CBD5E1;--ag:rgba(59,130,246,0.1);}
+        body[data-theme="dark"] .wiki-page{--bg:#060C18;--bg2:#0D1829;--bg3:#0F2040;--t1:#F1F5F9;--t2:#CBD5E1;--t3:#94A3B8;--t4:#64748B;--bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);--ag:rgba(59,130,246,0.18);}
+        .wiki-page,.wiki-page *,.wiki-page *::before,.wiki-page *::after{box-sizing:border-box;margin:0;padding:0;}
+        .wiki-page{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t1);line-height:1.6;font-size:14px;}
+        .wiki-page code{font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--v);}
+        @media(max-width:860px){
+          .wiki-shell{flex-direction:column}
+          .wiki-aside{width:100%!important;height:auto!important;max-height:280px;position:relative!important;top:auto;border-right:none!important;border-bottom:1px solid var(--bdr)}
+        }
       `}</style>
 
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <div className="wiki-shell" style={{ display: 'flex', minHeight: '100vh' }}>
         {/* SIDEBAR */}
-        <aside style={{ width: 'var(--sw)', flexShrink: 0, background: 'var(--bg2)', borderRight: '1px solid var(--bdr)', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <aside className="wiki-aside" style={{ width: 'var(--sw)', flexShrink: 0, background: 'var(--bg2)', borderRight: '1px solid var(--bdr)', position: 'sticky', top: 0, height: '100vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid var(--bdr)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 3 }}>
               <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg,#1c3d7a,#3B82F6)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -265,7 +271,7 @@ export default function WikiPage() {
           </div>
         </main>
       </div>
-    </>
+    </div>
   );
 }
 

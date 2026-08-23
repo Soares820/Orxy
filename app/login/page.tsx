@@ -227,7 +227,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPass(!showPass)}
-                    tabIndex={-1}
+                    aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
                     style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
                   >
                     {showPass

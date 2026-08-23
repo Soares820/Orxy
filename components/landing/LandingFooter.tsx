@@ -22,14 +22,14 @@ export default function LandingFooter() {
         <div className="lp-foot-links">
           <div>
             <div className="lp-foot-ttl">Produto</div>
-            <a onClick={() => document.getElementById('lp-features')?.scrollIntoView({ behavior: 'smooth' })}>Recursos</a>
-            <a onClick={() => document.getElementById('lp-pricing')?.scrollIntoView({ behavior: 'smooth' })}>Preços</a>
+            <a href="#lp-features" onClick={(e) => { e.preventDefault(); document.getElementById('lp-features')?.scrollIntoView({ behavior: 'smooth' }); }}>Recursos</a>
+            <a href="#lp-pricing" onClick={(e) => { e.preventDefault(); document.getElementById('lp-pricing')?.scrollIntoView({ behavior: 'smooth' }); }}>Preços</a>
             <Link href="/blog">Blog</Link>
             <Link href="/wiki">Manual</Link>
           </div>
           <div>
             <div className="lp-foot-ttl">Empresa</div>
-            <a onClick={() => document.getElementById('lp-features')?.scrollIntoView({ behavior: 'smooth' })} style={{ cursor: 'pointer' }}>Sobre nós</a>
+            <a href="#lp-features" onClick={(e) => { e.preventDefault(); document.getElementById('lp-features')?.scrollIntoView({ behavior: 'smooth' }); }}>Sobre nós</a>
             <a href="mailto:contato@oryxsoftware.com.br">Contato</a>
             <a href="https://wa.me/5541999177922" target="_blank" rel="noopener">WhatsApp</a>
           </div>

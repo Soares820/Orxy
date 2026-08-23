@@ -4,11 +4,19 @@ import { createServiceClient } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
+// Valores persistidos em clinics.plano — devem bater com lib/types.ts
+// ('trial' | 'basico' | 'pro' | 'enterprise'). O checkout usa a chave
+// 'profissional' (contrato com o front-end em ContaScreen.tsx), então
+// ela é normalizada para 'pro' antes de gravar — ver normalizePlano().
 const PLANO_MAP: Record<string, string> = {
   'price_1TqKzx5rqO1GLGXfhQgBRbW9': 'basico',
-  'price_1TqKzy5rqO1GLGXf8T2csNSm': 'profissional',
+  'price_1TqKzy5rqO1GLGXf8T2csNSm': 'pro',
   'price_1TqKzy5rqO1GLGXfazg0wfYa': 'enterprise',
 };
+
+function normalizePlano(plano: string): string {
+  return plano === 'profissional' ? 'pro' : plano;
+}
 
 export async function POST(req: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -40,7 +48,7 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = obj as unknown as Stripe.Checkout.Session;
         const clinicId = session.metadata?.clinic_id;
-        const plano = session.metadata?.plano ?? 'basico';
+        const plano = normalizePlano(session.metadata?.plano ?? 'basico');
         if (clinicId) {
           await supabase.from('clinics').update({
             plano,

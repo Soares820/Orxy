@@ -7,23 +7,13 @@ function escapeHtml(s: unknown): string {
 }
 
 async function verifyInternal(req: NextRequest): Promise<boolean> {
-  // Aceita chamadas internas do próprio servidor (webhook, etc.) via secret
+  // Este endpoint só deve ser chamado servidor-a-servidor (ex: webhook do Stripe).
+  // Não aceita qualquer usuário autenticado — isso permitiria a qualquer conta
+  // disparar e-mails transacionais para destinatários arbitrários.
   const internalSecret = process.env.INTERNAL_API_SECRET;
-  if (internalSecret) {
-    const h = req.headers.get('x-internal-secret');
-    if (h === internalSecret) return true;
-  }
-  // Aceita usuários autenticados via Supabase JWT
-  const auth = req.headers.get('authorization');
-  if (auth?.startsWith('Bearer ')) {
-    const { createServiceClient } = await import('@/lib/supabase');
-    try {
-      const sb = createServiceClient();
-      const { data: { user } } = await sb.auth.getUser(auth.slice(7));
-      if (user) return true;
-    } catch { /* fall through */ }
-  }
-  return false;
+  if (!internalSecret) return false;
+  const h = req.headers.get('x-internal-secret');
+  return h === internalSecret;
 }
 
 export async function POST(req: NextRequest) {
@@ -66,7 +56,7 @@ export async function POST(req: NextRequest) {
           </div>
           <a href="${appUrl}" style="display:block;background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;text-align:center;padding:14px;border-radius:12px;font-weight:700;font-size:15px;text-decoration:none">Acessar o sistema →</a>
         </div>
-        <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.4);text-align:center">ORYX · Suporte: suporte@vero.app</div>
+        <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.4);text-align:center">ORYX · Suporte: suporte@oryxsoftware.com.br</div>
       </div>`,
     },
     trial_ending: {
@@ -105,7 +95,7 @@ export async function POST(req: NextRequest) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'ORYX <noreply@vero.app>', to: [to], subject: tpl.subject, html: tpl.html }),
+      body: JSON.stringify({ from: process.env.RESEND_FROM ?? 'ORYX <onboarding@resend.dev>', to: [to], subject: tpl.subject, html: tpl.html }),
     });
     const responseData = await r.json() as { id?: string; message?: string };
     if (!r.ok) throw new Error(responseData.message ?? 'Resend error');

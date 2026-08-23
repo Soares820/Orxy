@@ -612,7 +612,7 @@ function DreTab() {
       ) : (
         /* Visão anual */
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
             {[
               { label: 'Receita total 12m', value: formatCurrency(anualData.rec), color: '#10b981' },
               { label: 'Despesas 12m', value: formatCurrency(anualData.desp), color: '#ef4444' },
@@ -1027,7 +1027,7 @@ export default function FinanceiroScreen() {
         {/* ── BI SEMPRE VISÍVEL ─────────────────────────────── */}
 
         {/* KPI heroes com sparkline */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginBottom: 12 }}>
           {/* Receita */}
           <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '16px 18px', overflow: 'hidden', position: 'relative' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>Receita — 6 meses</div>
@@ -1093,7 +1093,7 @@ export default function FinanceiroScreen() {
         </div>
 
         {/* Gráfico principal + Status cobranças */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, marginBottom: 14 }}>
           <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '18px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--t1)' }}>Receita × Despesas — 6 meses</div>
@@ -1141,7 +1141,7 @@ export default function FinanceiroScreen() {
         </div>
 
         {/* Resultado mensal + Receita por paciente + Despesas por categoria */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginBottom: 20 }}>
           {/* Resultado mensal 12m */}
           <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: '18px 16px' }}>
             <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--t1)', marginBottom: 10 }}>Resultado mensal — 12m</div>
@@ -1253,13 +1253,13 @@ export default function FinanceiroScreen() {
         {pagImportResult && pagImportState === 'done' && tab === 'pagamentos' && (
           <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 10, background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.25)', color: '#10b981', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
             <span>✓ {pagImportResult.ok} recebimento(s) importado(s){pagImportResult.err > 0 ? ` · ${pagImportResult.err} não encontrado(s)` : ''}</span>
-            <button onClick={() => setPagImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
+            <button title="Fechar aviso" aria-label="Fechar aviso" onClick={() => setPagImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
           </div>
         )}
         {despImportResult && despImportState === 'done' && tab === 'despesas' && (
           <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 10, background: 'rgba(16,185,129,.1)', border: '1px solid rgba(16,185,129,.25)', color: '#10b981', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
             <span>✓ {despImportResult.ok} despesa(s) importada(s){despImportResult.err > 0 ? ` · ${despImportResult.err} erro(s)` : ''}</span>
-            <button onClick={() => setDespImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
+            <button title="Fechar aviso" aria-label="Fechar aviso" onClick={() => setDespImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
           </div>
         )}
 
@@ -1361,7 +1361,7 @@ export default function FinanceiroScreen() {
           <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selectedPay ? 'Editar pagamento' : 'Novo pagamento'}</h2>
-              <button onClick={() => setShowPayModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
+              <button title="Fechar" aria-label="Fechar" onClick={() => setShowPayModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
             </div>
             <form onSubmit={handleSavePay} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Paciente *</label>
@@ -1398,7 +1398,7 @@ export default function FinanceiroScreen() {
           <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>Novo contrato</h2>
-              <button onClick={() => setShowContractModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
+              <button title="Fechar" aria-label="Fechar" onClick={() => setShowContractModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
             </div>
             <form onSubmit={handleSaveContract} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Paciente *</label>
@@ -1437,7 +1437,7 @@ export default function FinanceiroScreen() {
           <div style={{ background: 'var(--bg)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>{selectedExp ? 'Editar despesa' : 'Nova despesa'}</h2>
-              <button onClick={() => setShowExpModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
+              <button title="Fechar" aria-label="Fechar" onClick={() => setShowExpModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
             </div>
             <form onSubmit={handleSaveExp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Descricao *</label><input value={expForm.descricao} onChange={(e) => setExpForm(f => ({ ...f, descricao: e.target.value }))} required placeholder="Ex: Aluguel sala" style={inp} /></div>
@@ -1516,7 +1516,7 @@ export default function FinanceiroScreen() {
                 <div style={{ fontWeight: 800, fontSize: 15 }}>Importar despesas</div>
                 <div style={{ fontSize: 12, opacity: .8 }}>{despImportRows.length} lançamento(s) encontrado(s)</div>
               </div>
-              {despImportState === 'preview' && <button onClick={() => setDespImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+              {despImportState === 'preview' && <button onClick={() => setDespImportState('idle')} title="Cancelar importação" aria-label="Cancelar importação" style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
             </div>
             <div style={{ padding: '14px 20px', maxHeight: '45vh', overflowY: 'auto' }}>
               {despImportRows.slice(0, 8).map((r, i) => (
@@ -1550,7 +1550,7 @@ export default function FinanceiroScreen() {
                 <div style={{ fontWeight: 800, fontSize: 15 }}>Importar recebimentos</div>
                 <div style={{ fontSize: 12, opacity: .8 }}>{pagImportRows.length} registro(s) encontrado(s)</div>
               </div>
-              {pagImportState === 'preview' && <button onClick={() => setPagImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+              {pagImportState === 'preview' && <button onClick={() => setPagImportState('idle')} title="Cancelar importação" aria-label="Cancelar importação" style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 28, height: 28, color: '#fff', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
             </div>
             <div style={{ padding: '10px 18px 0', background: 'transparent' }}>
               <div style={{ padding: '10px 12px', background: 'rgba(245,158,11,.08)', borderLeft: '3px solid #f59e0b', borderRadius: 6, fontSize: 12, color: 'var(--t2)' }}>

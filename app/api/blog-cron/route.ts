@@ -114,8 +114,17 @@ export async function POST(req: NextRequest) {
 
 async function handler(req: NextRequest) {
   const CRON_SECRET = process.env.BLOG_CRON_SECRET;
-  const secret = req.headers.get('x-cron-secret');
-  if (CRON_SECRET && secret !== CRON_SECRET) {
+  if (!CRON_SECRET) {
+    // Fail closed: an unset secret must never mean "no auth required".
+    return NextResponse.json({ error: 'BLOG_CRON_SECRET not configured' }, { status: 500 });
+  }
+  // Accept either a manual x-cron-secret header, or the standard
+  // "Authorization: Bearer $CRON_SECRET" header Vercel Cron sends
+  // automatically when a CRON_SECRET env var is configured.
+  const secret = req.headers.get('x-cron-secret')
+    ?? req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+    ?? null;
+  if (secret !== CRON_SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
   }
 

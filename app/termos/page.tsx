@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: 'Termos de Uso' };
 
 export default function TermosPage() {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)', fontFamily: 'var(--font-sans, Inter, sans-serif)', padding: '40px 20px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--t1)', fontFamily: 'var(--font)', padding: '40px 20px' }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--p)', textDecoration: 'none', fontSize: 14, fontWeight: 600, marginBottom: 32 }}>
           ← Voltar

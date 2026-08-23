@@ -75,7 +75,7 @@ export default function PacientesScreen() {
       const { supabase } = await import('@/lib/supabase');
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
-      if (!uid) return;
+      if (!uid) { setSaveError('Sessão expirada. Recarregue a página e tente novamente.'); return; }
 
       const { data: userRow } = await supabase.from('users').select('clinic_id').eq('auth_id', uid).single();
       const clinic_id = userRow?.clinic_id;
@@ -227,6 +227,7 @@ export default function PacientesScreen() {
             <input
               type="text"
               placeholder="Buscar paciente ou responsável..."
+              aria-label="Buscar paciente ou responsável"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ width: '100%', padding: '10px 14px 10px 38px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
@@ -278,7 +279,7 @@ export default function PacientesScreen() {
         {importResult && importState === 'done' && (
           <div style={{ padding: '10px 14px', borderRadius: 10, marginBottom: 12, background: importResult.err === 0 ? 'rgba(16,185,129,.1)' : 'rgba(245,158,11,.1)', border: `1px solid ${importResult.err === 0 ? 'rgba(16,185,129,.25)' : 'rgba(245,158,11,.25)'}`, color: importResult.err === 0 ? '#10b981' : '#f59e0b', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>✓ {importResult.ok} paciente(s) importado(s){importResult.err > 0 ? ` · ${importResult.err} erro(s)` : ''}</span>
-            <button onClick={() => setImportState('idle')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
+            <button onClick={() => setImportState('idle')} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 16 }}>×</button>
           </div>
         )}
 
@@ -295,7 +296,10 @@ export default function PacientesScreen() {
             {filtered.map((p) => (
               <div
                 key={p.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => openEdit(p)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(p); } }}
                 style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 'var(--r)', padding: 18, cursor: 'pointer', transition: '.15s' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
@@ -340,7 +344,7 @@ export default function PacientesScreen() {
                 <div style={{ fontWeight: 800, fontSize: 16 }}>Importar pacientes</div>
                 <div style={{ fontSize: 12, opacity: .8 }}>{importRows.length} linha(s) encontrada(s) com nome válido</div>
               </div>
-              {importState === 'preview' && <button onClick={() => setImportState('idle')} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 30, height: 30, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
+              {importState === 'preview' && <button onClick={() => setImportState('idle')} aria-label="Fechar" style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, width: 30, height: 30, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
             </div>
             <div style={{ padding: '16px 24px', maxHeight: '50vh', overflowY: 'auto' }}>
               <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>Prévia das primeiras linhas:</div>
@@ -382,7 +386,7 @@ export default function PacientesScreen() {
                   </div>
                 )}
               </div>
-              <button onClick={() => setShowModal(false)} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+              <button onClick={() => setShowModal(false)} aria-label="Fechar" style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 10, width: 32, height: 32, color: '#fff', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
             </div>
 
             <form onSubmit={handleSave} style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>

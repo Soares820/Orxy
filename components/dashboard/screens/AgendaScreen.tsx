@@ -143,6 +143,7 @@ export default function AgendaScreen() {
 
   async function handleDelete() {
     if (!editing) return;
+    if (!confirm('Excluir esta sessão? Esta ação não pode ser desfeita.')) return;
     const { supabase } = await import('@/lib/supabase');
     await supabase.from('sessoes').delete().eq('id', editing.id);
     dispatch({ type: 'DELETE_SESSION', payload: editing.id });
@@ -176,11 +177,11 @@ export default function AgendaScreen() {
           {/* LEFT: Monthly calendar */}
           <div className="agenda-cal-wrap">
             <div className="agenda-cal-nav">
-              <button className="agenda-cal-arrow" onClick={prevMonth}>
+              <button className="agenda-cal-arrow" onClick={prevMonth} aria-label="Mês anterior" title="Mês anterior">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
               <span className="agenda-cal-month">{MONTHS[calMonth]} {calYear}</span>
-              <button className="agenda-cal-arrow" onClick={nextMonth}>
+              <button className="agenda-cal-arrow" onClick={nextMonth} aria-label="Próximo mês" title="Próximo mês">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             </div>
@@ -214,7 +215,14 @@ export default function AgendaScreen() {
                 if (isSelected) cls += ' selected';
                 if (hasEvents) cls += ' has-events';
                 return (
-                  <div key={date} className={cls} onClick={() => setSelectedDate(date)}>
+                  <div
+                    key={date}
+                    className={cls}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedDate(date)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedDate(date); } }}
+                  >
                     <span className="agenda-day-num">{new Date(date + 'T12:00:00').getDate()}</span>
                     <div className="agenda-day-dot" />
                   </div>
@@ -276,7 +284,14 @@ export default function AgendaScreen() {
             ) : (
               <div className="agenda-sess-list">
                 {daySessions.map(s => (
-                  <div key={s.id} className="agenda-sess" onClick={() => openEdit(s)}>
+                  <div
+                    key={s.id}
+                    className="agenda-sess"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openEdit(s)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEdit(s); } }}
+                  >
                     <div className="agenda-sess-time">{s.hora}</div>
                     <div className="agenda-sess-dot" style={{ background: statusDot(s.status) }} />
                     <div className="agenda-sess-body">
@@ -298,7 +313,7 @@ export default function AgendaScreen() {
           <div style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 22, padding: 28, width: '100%', maxWidth: 450, boxShadow: 'var(--sh-xl)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
               <h2 style={{ fontWeight: 900, fontSize: 20, color: 'var(--t1)', margin: 0 }}>{editing ? 'Editar sessão' : 'Nova sessão'}</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
+              <button onClick={() => setShowModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>×</button>
             </div>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
