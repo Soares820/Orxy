@@ -27,6 +27,7 @@ export interface Usuario {
   telefone?: string | null;
   status: 'ativo' | 'inativo';
   created_at: string;
+  paciente_id?: number | null;
 }
 
 export interface Paciente {

@@ -8,10 +8,15 @@ interface Props {
   onNav?: (s: Screen) => void;
 }
 
-export default function PortalScreen({ onNav }: Props) {
+export default function PortalScreen(_props: Props) {
   const { state } = useApp();
   const { data, user } = state;
 
+  const isClinicView = user?.role !== 'familia';
+
+  // AppContext.loadUserData scopes pacientes/sessoes/metas/avaliacoes to
+  // users.paciente_id for role='familia', so data.children is already just
+  // this family's child (empty if not yet linked by the clinic — see below).
   const myChild = data.children[0] ?? null;
 
   const childSessions = useMemo(() => {
@@ -103,7 +108,24 @@ export default function PortalScreen({ onNav }: Props) {
     },
   ];
 
-  const isClinicView = user?.role !== 'familia';
+  if (!isClinicView && !myChild) {
+    return (
+      <div className="dash-content">
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          textAlign: 'center', gap: 14, padding: '64px 24px', minHeight: 320,
+        }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--t1)', margin: 0 }}>Portal ainda não disponível</h1>
+          <p style={{ fontSize: 14, color: 'var(--t2)', maxWidth: 420, margin: 0 }}>
+            Seu acesso ainda não foi vinculado a um paciente. Entre em contato com a clínica para liberar o acompanhamento pelo Portal da Família.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dash-content">
@@ -147,8 +169,7 @@ export default function PortalScreen({ onNav }: Props) {
           <button
             key={tile.label}
             className={`dash-tile ${tile.color}`}
-            onClick={() => { if (!isClinicView) onNav?.(tile.key); }}
-            style={isClinicView ? { cursor: 'default', opacity: 0.85 } : undefined}
+            style={{ cursor: 'default', opacity: 0.85 }}
           >
             <div className="dt-ico">{tile.icon}</div>
             <div className="dt-body">

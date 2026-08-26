@@ -33,9 +33,15 @@ export async function POST(req: NextRequest) {
 
   const VALID_ROLES = ['admin', 'terapeuta', 'recepcao', 'financeiro', 'familia'];
 
-  // Usuário veio de um convite (/api/invite grava clinic_id/role/nome/cargo no user_metadata)
+  // Usuário veio de um convite (/api/invite grava clinic_id/role em app_metadata)
   // — deve entrar na clínica que o convidou, não criar uma nova.
-  const inviteClinicId = user.user_metadata?.clinic_id as string | undefined;
+  //
+  // IMPORTANTE: lê de app_metadata, nunca de user_metadata. user_metadata é
+  // gravável pelo próprio usuário via supabase.auth.signUp({ options: { data } }),
+  // então qualquer um poderia forjar clinic_id/role ali para se auto-provisionar
+  // como admin de uma clínica alheia. app_metadata só é gravável pela service
+  // role (ver /api/invite), então só existe aqui se um admin convidou de fato.
+  const inviteClinicId = user.app_metadata?.clinic_id as string | undefined;
   if (inviteClinicId) {
     const { data: inviteClinic } = await supabase
       .from('clinics')
@@ -44,8 +50,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (inviteClinic) {
-      const role = VALID_ROLES.includes(user.user_metadata?.role) ? user.user_metadata.role : 'terapeuta';
+      const role = VALID_ROLES.includes(user.app_metadata?.role) ? user.app_metadata.role : 'terapeuta';
       const nome = user.user_metadata?.nome ?? user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Membro';
+      // paciente_id só vem de app_metadata (gravado pela service role em /api/invite),
+      // nunca de user_metadata — mesmo raciocínio de clinic_id/role acima.
+      const pacienteId = role === 'familia' ? (user.app_metadata?.paciente_id as string | undefined) : undefined;
 
       const { data: memberUser, error: memberErr } = await supabase
         .from('users')
@@ -57,6 +66,7 @@ export async function POST(req: NextRequest) {
           role,
           cargo: user.user_metadata?.cargo ?? undefined,
           status: 'ativo',
+          paciente_id: pacienteId ?? undefined,
         })
         .select()
         .single();
@@ -86,9 +96,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Erro ao criar clínica: ' + clinicErr?.message }, { status: 500 });
   }
 
-  // Cria perfil do usuário
+  // Cria perfil do usuário — auto-cadastro (sem convite) sempre entra como admin
+  // da própria clínica nova; conta 'familia' só existe via convite (ver acima).
   const nome = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Admin';
-  const role = user.user_metadata?.role === 'familiar' ? 'familia' : 'admin';
 
   const { data: newUser, error: userErr } = await supabase
     .from('users')
@@ -97,8 +107,8 @@ export async function POST(req: NextRequest) {
       clinic_id: clinic.id,
       nome,
       email: user.email ?? '',
-      role,
-      cargo: role === 'admin' ? 'Administrador' : undefined,
+      role: 'admin',
+      cargo: 'Administrador',
       status: 'ativo',
     })
     .select()

@@ -428,6 +428,28 @@ CREATE TRIGGER trg_sync_user_to_funcionario
   EXECUTE FUNCTION public.sync_user_to_funcionario();
 
 -- ══════════════════════════════════════════════════════════════
+-- Vínculo familia → paciente. Ver supabase/migrations/20260825_family_patient_link.sql
+-- ══════════════════════════════════════════════════════════════
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS paciente_id BIGINT REFERENCES public.pacientes(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_users_paciente_id ON public.users(paciente_id);
+
+CREATE OR REPLACE FUNCTION public.chk_users_paciente_clinica()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.paciente_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.pacientes WHERE id = NEW.paciente_id AND clinic_id = NEW.clinic_id
+  ) THEN
+    RAISE EXCEPTION 'users.paciente_id (%) não pertence à clinic_id % desta linha', NEW.paciente_id, NEW.clinic_id;
+  END IF;
+  RETURN NEW;
+END; $$;
+DROP TRIGGER IF EXISTS trg_chk_users_paciente_clinica ON public.users;
+CREATE TRIGGER trg_chk_users_paciente_clinica
+  BEFORE INSERT OR UPDATE OF paciente_id, clinic_id ON public.users
+  FOR EACH ROW EXECUTE FUNCTION public.chk_users_paciente_clinica();
+
+-- ══════════════════════════════════════════════════════════════
 -- TRIGGERS: validação cross-tenant (impede FK apontando p/ outra clínica)
 -- Ver supabase/migrations/20260820_integrity_hardening.sql para os
 -- comentários completos sobre por que isso é necessário.

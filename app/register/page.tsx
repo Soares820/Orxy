@@ -6,12 +6,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
-type Step = 'tipo' | 'dados' | 'senha' | 'confirmar' | 'invite';
+type Step = 'dados' | 'senha' | 'confirmar' | 'invite';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>('tipo');
-  const [tipo, setTipo] = useState<'clinica' | 'familiar'>('clinica');
+  const [step, setStep] = useState<Step>('dados');
   const [form, setForm] = useState({ name: '', clinicName: '', email: '', phone: '', password: '', confirm: '' });
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,7 +26,7 @@ export default function RegisterPage() {
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
         // Se o usuário veio via convite, ainda não tem senha — mostra form de criação de senha
         const meta = session.user.user_metadata;
-        if (meta?.invited_at || !session.user.last_sign_in_at || step === 'tipo') {
+        if (meta?.invited_at || !session.user.last_sign_in_at || step === 'dados') {
           setStep('invite');
         }
       }
@@ -70,8 +69,8 @@ export default function RegisterPage() {
         options: {
           data: {
             full_name: form.name,
-            clinic_name: tipo === 'clinica' ? (form.clinicName || form.name) : null,
-            role: tipo === 'clinica' ? 'admin' : 'familiar',
+            clinic_name: form.clinicName || form.name,
+            role: 'admin',
             phone: form.phone,
           },
         },
@@ -96,7 +95,7 @@ export default function RegisterPage() {
     }
   }
 
-  const STEPS = ['tipo', 'dados', 'senha'];
+  const STEPS = ['dados', 'senha'];
   const stepIdx = STEPS.indexOf(step);
 
   return (
@@ -180,51 +179,21 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {step === 'tipo' && (
-              <div>
-                <h1 className="l-title">Quem vai usar?</h1>
-                <p className="l-sub">Escolha o perfil que melhor representa você</p>
-                <div className="l-roles">
-                  {[
-                    { key: 'clinica', icon: '🏥', label: 'Clínica / Terapeuta', desc: 'Gerencie pacientes e sessões' },
-                    { key: 'familiar', icon: '👨‍👩‍👦', label: 'Familiar', desc: 'Acompanhe seu filho' },
-                  ].map((t) => (
-                    <button
-                      key={t.key}
-                      type="button"
-                      className={`l-role${tipo === t.key ? ' active' : ''}`}
-                      onClick={() => setTipo(t.key as typeof tipo)}
-                    >
-                      <div className="l-rico">{t.icon}</div>
-                      <div className="l-rlbl">{t.label}</div>
-                      <div className="l-rsub">{t.desc}</div>
-                      <div className="l-check">✓</div>
-                    </button>
-                  ))}
-                </div>
-                <button className="l-btn" onClick={() => setStep('dados')}>
-                  Continuar →
-                </button>
-              </div>
-            )}
-
             {step === 'dados' && (
               <form onSubmit={(e) => { e.preventDefault(); setStep('senha'); }}>
                 <h1 className="l-title">Seus dados</h1>
-                <p className="l-sub">Preencha as informações da sua conta</p>
+                <p className="l-sub">Preencha as informações da sua clínica</p>
 
                 <div className="l-field">
                   <label className="l-lbl">Nome completo *</label>
                   <input className="l-inp" type="text" placeholder="Ex: Ana Beatriz Santos"
                     value={form.name} onChange={e => update('name', e.target.value)} required autoFocus />
                 </div>
-                {tipo === 'clinica' && (
-                  <div className="l-field">
-                    <label className="l-lbl">Nome da clínica</label>
-                    <input className="l-inp" type="text" placeholder="Ex: Clínica TEA Esperança"
-                      value={form.clinicName} onChange={e => update('clinicName', e.target.value)} />
-                  </div>
-                )}
+                <div className="l-field">
+                  <label className="l-lbl">Nome da clínica</label>
+                  <input className="l-inp" type="text" placeholder="Ex: Clínica TEA Esperança"
+                    value={form.clinicName} onChange={e => update('clinicName', e.target.value)} />
+                </div>
                 <div className="l-field">
                   <label className="l-lbl">E-mail *</label>
                   <input className="l-inp" type="email" placeholder="seu@email.com.br" autoComplete="email"
@@ -236,10 +205,7 @@ export default function RegisterPage() {
                     value={form.phone} onChange={e => update('phone', e.target.value)} />
                 </div>
 
-                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                  <button type="button" className="l-btn-out" onClick={() => setStep('tipo')}>← Voltar</button>
-                  <button type="submit" className="l-btn" style={{ flex: 1 }}>Continuar →</button>
-                </div>
+                <button type="submit" className="l-btn" style={{ width: '100%' }}>Continuar →</button>
               </form>
             )}
 
@@ -325,13 +291,20 @@ export default function RegisterPage() {
                 </Link>
                 <p style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginTop: 16 }}>
                   Não recebeu?{' '}
-                  <button type="button" onClick={async () => {
-                    await supabase.auth.resend({ type: 'signup', email: form.email });
-                    alert('E-mail reenviado!');
-                  }} style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: 'pointer', fontSize: 12, padding: 0, fontWeight: 600 }}>
-                    Reenviar e-mail
+                  <button type="button" disabled={resendState === 'sending'} onClick={async () => {
+                    setResendState('sending');
+                    const { error: resendError } = await supabase.auth.resend({ type: 'signup', email: form.email });
+                    setResendState(resendError ? 'error' : 'sent');
+                  }} style={{ background: 'none', border: 'none', color: '#60A5FA', cursor: resendState === 'sending' ? 'default' : 'pointer', fontSize: 12, padding: 0, fontWeight: 600, opacity: resendState === 'sending' ? 0.6 : 1 }}>
+                    {resendState === 'sending' ? 'Reenviando...' : 'Reenviar e-mail'}
                   </button>
                 </p>
+                {resendState === 'sent' && (
+                  <p style={{ fontSize: 12, color: '#34D399', marginTop: 8 }}>E-mail reenviado com sucesso!</p>
+                )}
+                {resendState === 'error' && (
+                  <p style={{ fontSize: 12, color: '#F87171', marginTop: 8 }}>Não foi possível reenviar. Tente novamente em instantes.</p>
+                )}
               </div>
             )}
 

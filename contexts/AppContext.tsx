@@ -103,7 +103,7 @@ function reducer(state: AppState, action: Action): AppState {
 interface AppContextValue {
   state: AppState;
   dispatch: React.Dispatch<Action>;
-  loadUserData: (clinicId: string) => Promise<void>;
+  loadUserData: (clinicId: string, role?: string, pacienteId?: string | number | null) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -120,9 +120,40 @@ export function useApp() {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const loadUserData = useCallback(async (clinicId: string) => {
+  const loadUserData = useCallback(async (clinicId: string, role?: string, pacienteId?: string | number | null) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pick = (r: PromiseSettledResult<{ data: any[] | null }>): any[] =>
+        r.status === 'fulfilled' ? (r.value.data ?? []) : [];
+
+      // Conta 'familia' só vê o paciente ao qual foi vinculada no convite (users.paciente_id)
+      // — nunca a clínica inteira. Sem vínculo, não vê nenhum paciente (ver PortalScreen).
+      if (role === 'familia') {
+        if (!pacienteId) {
+          dispatch({ type: 'SET_DATA', payload: { ...EMPTY_DATA } });
+          return;
+        }
+        const [pac, sess, met, aval] = await Promise.allSettled([
+          supabase.from('pacientes').select('*').eq('id', pacienteId).eq('clinic_id', clinicId),
+          supabase.from('sessoes').select('*').eq('child_id', pacienteId).eq('clinic_id', clinicId).order('created_at', { ascending: false }),
+          supabase.from('metas').select('*').eq('child_id', pacienteId).eq('clinic_id', clinicId).order('created_at', { ascending: false }),
+          supabase.from('avaliacoes').select('*').eq('child_id', pacienteId).eq('clinic_id', clinicId).order('created_at', { ascending: false }),
+        ]);
+
+        dispatch({
+          type: 'SET_DATA',
+          payload: {
+            children:     pick(pac as PromiseSettledResult<{ data: unknown[] | null }>),
+            sessions:     pick(sess as PromiseSettledResult<{ data: unknown[] | null }>),
+            goals:        pick(met as PromiseSettledResult<{ data: unknown[] | null }>),
+            evaluations:  pick(aval as PromiseSettledResult<{ data: unknown[] | null }>),
+            contracts: [], payments: [], team: [], profiles: [], expenses: [], fornecedores: [],
+          },
+        });
+        return;
+      }
+
       const [pac, sess, cont, pag, met, aval, func, usuarios, desp, forn] = await Promise.allSettled([
         supabase.from('pacientes').select('*').eq('clinic_id', clinicId).order('name'),
         supabase.from('sessoes').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
@@ -135,10 +166,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('despesas').select('*').eq('clinic_id', clinicId).order('mes', { ascending: false }),
         supabase.from('fornecedores').select('*').eq('clinic_id', clinicId).eq('status', 'ativo').order('nome'),
       ]);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pick = (r: PromiseSettledResult<{ data: any[] | null }>): any[] =>
-        r.status === 'fulfilled' ? (r.value.data ?? []) : [];
 
       dispatch({
         type: 'SET_DATA',
@@ -193,7 +220,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               trialEndsAt: clinic?.trial_ends ?? null,
             },
           });
-          await loadUserData(userRow.clinic_id);
+          await loadUserData(userRow.clinic_id, userRow.role, userRow.paciente_id);
         } else {
           // Sem perfil no banco — provisiona automaticamente (cria clínica + usuario)
           try {
@@ -217,7 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   trialEndsAt: clinic?.trial_ends ?? null,
                 },
               });
-              await loadUserData(provUser.clinic_id);
+              await loadUserData(provUser.clinic_id, provUser.role, provUser.paciente_id);
             } else {
               // Fallback mínimo se o provisionamento falhar
               dispatch({

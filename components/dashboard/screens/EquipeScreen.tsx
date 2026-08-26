@@ -22,7 +22,7 @@ export default function EquipeScreen() {
       id: p.id,
       name: p.nome ?? p.email ?? 'Sem nome',
       role: p.role ?? 'terapeuta',
-      cargo: (p as any).cargo ?? '',
+      cargo: p.cargo ?? '',
       email: p.email ?? '',
       status: p.status ?? 'ativo',
     }));
@@ -33,6 +33,7 @@ export default function EquipeScreen() {
   const [inviteNome, setInviteNome] = useState('');
   const [inviteRole, setInviteRole] = useState('terapeuta');
   const [inviteCargo, setInviteCargo] = useState('');
+  const [invitePacienteId, setInvitePacienteId] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
@@ -58,6 +59,10 @@ export default function EquipeScreen() {
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
     if (!inviteEmail || !inviteNome) return;
+    if (inviteRole === 'familia' && !invitePacienteId) {
+      setInviteError('Selecione o paciente vinculado a este familiar.');
+      return;
+    }
     setInviting(true);
     setInviteError('');
     try {
@@ -76,6 +81,7 @@ export default function EquipeScreen() {
           role: inviteRole,
           cargo: inviteCargo.trim() || (ROLE_LABELS[inviteRole] ?? 'Terapeuta'),
           invited_by: state.user?.name,
+          paciente_id: inviteRole === 'familia' ? invitePacienteId : undefined,
         }),
       });
       const json = await res.json();
@@ -90,6 +96,7 @@ export default function EquipeScreen() {
         setInviteEmail('');
         setInviteNome('');
         setInviteCargo('');
+        setInvitePacienteId('');
       }, 1800);
     } catch {
       setInviteError('Erro de conexão. Tente novamente.');
@@ -190,37 +197,53 @@ export default function EquipeScreen() {
                     <option value="admin">Administrador</option>
                     <option value="recepcao">Recepção</option>
                     <option value="financeiro">Financeiro</option>
+                    <option value="familia">Familiar (Portal da Família)</option>
                   </select>
                 </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>
-                    Cargo <span style={{ fontWeight: 400, color: 'var(--t3)' }}>(opcional)</span>
-                  </label>
-                  <input
-                    value={inviteCargo}
-                    onChange={(e) => setInviteCargo(e.target.value)}
-                    placeholder="Ex: Terapeuta Ocupacional, Fonoaudióloga..."
-                    list="cargo-suggestions"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  />
-                  <datalist id="cargo-suggestions">
-                    <option value="Terapeuta Ocupacional" />
-                    <option value="Fonoaudióloga" />
-                    <option value="Fonoaudiólogo" />
-                    <option value="Psicopedagoga" />
-                    <option value="Psicopedagogo" />
-                    <option value="Psicóloga" />
-                    <option value="Psicólogo" />
-                    <option value="Fisioterapeuta" />
-                    <option value="Técnica em ABA" />
-                    <option value="Técnico em ABA" />
-                    <option value="Coordenadora Clínica" />
-                    <option value="Coordenador Clínico" />
-                    <option value="Analista do Comportamento" />
-                    <option value="Recepcionista" />
-                    <option value="Administrativo" />
-                  </datalist>
-                </div>
+                {inviteRole === 'familia' ? (
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>Paciente vinculado *</label>
+                    <select value={invitePacienteId} onChange={(e) => setInvitePacienteId(e.target.value)} required style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit' }}>
+                      <option value="">Selecione o paciente...</option>
+                      {data.children.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}>
+                      Este familiar só terá acesso aos dados deste paciente no Portal da Família.
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>
+                      Cargo <span style={{ fontWeight: 400, color: 'var(--t3)' }}>(opcional)</span>
+                    </label>
+                    <input
+                      value={inviteCargo}
+                      onChange={(e) => setInviteCargo(e.target.value)}
+                      placeholder="Ex: Terapeuta Ocupacional, Fonoaudióloga..."
+                      list="cargo-suggestions"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                    <datalist id="cargo-suggestions">
+                      <option value="Terapeuta Ocupacional" />
+                      <option value="Fonoaudióloga" />
+                      <option value="Fonoaudiólogo" />
+                      <option value="Psicopedagoga" />
+                      <option value="Psicopedagogo" />
+                      <option value="Psicóloga" />
+                      <option value="Psicólogo" />
+                      <option value="Fisioterapeuta" />
+                      <option value="Técnica em ABA" />
+                      <option value="Técnico em ABA" />
+                      <option value="Coordenadora Clínica" />
+                      <option value="Coordenador Clínico" />
+                      <option value="Analista do Comportamento" />
+                      <option value="Recepcionista" />
+                      <option value="Administrativo" />
+                    </datalist>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                   <button type="button" onClick={() => setShowInvite(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--bdr)', borderRadius: 10, background: 'none', color: 'var(--t2)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
                   <button type="submit" disabled={inviting} className="btn-p" style={{ flex: 2 }}>{inviting ? 'Enviando...' : 'Enviar convite'}</button>

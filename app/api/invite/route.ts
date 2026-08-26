@@ -25,13 +25,16 @@ export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
 
-  const { clinic_id, email, nome, cargo, role, invited_by } = body;
+  const { clinic_id, email, nome, cargo, role, invited_by, paciente_id } = body;
 
   if (!clinic_id || !email || !nome) {
     return NextResponse.json({ error: 'clinic_id, email e nome são obrigatórios' }, { status: 400 });
   }
   if (typeof nome !== 'string' || nome.length > 100) return NextResponse.json({ error: 'nome inválido' }, { status: 400 });
   if (role && !VALID_ROLES.includes(String(role))) return NextResponse.json({ error: 'role inválido' }, { status: 400 });
+  if (role === 'familia' && !paciente_id) {
+    return NextResponse.json({ error: 'paciente_id é obrigatório para convites de família' }, { status: 400 });
+  }
 
   const supabase = createServiceClient();
 
@@ -47,6 +50,19 @@ export async function POST(req: NextRequest) {
   if (userRecord.role !== 'admin') {
     return NextResponse.json({ error: 'Apenas administradores podem convidar membros' }, { status: 403 });
   }
+
+  if (role === 'familia') {
+    const { data: paciente } = await supabase
+      .from('pacientes')
+      .select('id')
+      .eq('id', paciente_id)
+      .eq('clinic_id', clinic_id)
+      .single();
+    if (!paciente) {
+      return NextResponse.json({ error: 'Paciente não encontrado nesta clínica' }, { status: 400 });
+    }
+  }
+
   const appUrl = process.env.APP_URL ?? 'https://to-plataforma.vercel.app';
 
   try {
@@ -64,16 +80,36 @@ export async function POST(req: NextRequest) {
       type: 'invite',
       email: String(email),
       options: {
-        data: { nome, cargo: cargo ?? 'Terapeuta', clinic_id, role: role ?? 'terapeuta' },
+        // user_metadata é somente para exibição (nome/cargo) — NUNCA usar
+        // clinic_id/role daqui como prova de convite: esses campos também
+        // são graváveis pelo próprio usuário via supabase.auth.signUp()
+        // no client, então qualquer um poderia forjar um clinic_id alheio
+        // e se auto-provisionar como admin de outra clínica. Por isso
+        // clinic_id/role de confiança vão para app_metadata logo abaixo,
+        // que só a service role pode escrever (ver /api/provision).
+        data: { nome, cargo: cargo ?? 'Terapeuta' },
         redirectTo: `${appUrl}/register`,
       },
     });
 
-    if (linkError || !linkData?.properties?.action_link) {
+    if (linkError || !linkData?.properties?.action_link || !linkData.user) {
       throw linkError ?? new Error('Falha ao gerar link de convite');
     }
 
+    // Grava clinic_id/role em app_metadata (não editável pelo client) —
+    // é isso que /api/provision confia para vincular o convidado à clínica certa.
+    const { error: metaError } = await supabase.auth.admin.updateUserById(linkData.user.id, {
+      app_metadata: {
+        clinic_id,
+        role: role ?? 'terapeuta',
+        invited: true,
+        ...(role === 'familia' ? { paciente_id } : {}),
+      },
+    });
+    if (metaError) throw metaError;
+
     const inviteUrl = linkData.properties.action_link;
+    let emailSent = false;
 
     // Send custom email via Resend
     if (process.env.RESEND_API_KEY) {
@@ -106,10 +142,21 @@ export async function POST(req: NextRequest) {
       if (!resendResp.ok) {
         const resendErr = await resendResp.json().catch(() => ({}));
         console.error('Resend error:', resendErr);
+      } else {
+        emailSent = true;
       }
     }
 
-    return NextResponse.json({ ok: true, message: `Convite enviado para ${email}` });
+    // O link de convite já foi criado e é válido mesmo se o e-mail falhar —
+    // devolve inviteUrl e emailSent para o admin poder compartilhar manualmente.
+    return NextResponse.json({
+      ok: true,
+      emailSent,
+      inviteUrl,
+      message: emailSent
+        ? `Convite enviado para ${email}`
+        : `Convite criado, mas o e-mail não pôde ser enviado. Compartilhe o link manualmente.`,
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Invite error';
     console.error('Invite error:', msg);

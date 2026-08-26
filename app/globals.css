@@ -69,7 +69,7 @@ body {
 button { cursor: pointer; font-family: inherit; border: none; background: none; }
 input, textarea, select { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
-img, svg { display: block; max-width: 100%; }
+img, svg { display: block; max-width: 100%; height: auto; }
 
 /* ─── Animations ─────────────────────────────────────────── */
 @keyframes fadeUp    { from { opacity:0; transform:translateY(18px) } to { opacity:1; transform:none } }
