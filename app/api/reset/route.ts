@@ -59,19 +59,26 @@ export async function POST(req: NextRequest) {
   // Envia via Resend se disponível
   if (process.env.RESEND_API_KEY) {
     const fromAddr = process.env.RESEND_FROM ?? 'ORYX <onboarding@resend.dev>';
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromAddr,
-        to: [email],
-        subject: 'Redefinir sua senha — ORYX',
-        html: buildEmailHtml(recoveryUrl, email),
-      }),
-    });
+    try {
+      const resendResp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromAddr,
+          to: [email],
+          subject: 'Redefinir sua senha — ORYX',
+          html: buildEmailHtml(recoveryUrl, email),
+        }),
+      });
+      if (!resendResp.ok) {
+        console.error('Resend reset error:', await resendResp.json().catch(() => ({})));
+      }
+    } catch (err) {
+      console.error('Resend reset error:', err instanceof Error ? err.message : err);
+    }
   }
 
   return NextResponse.json({ ok: true });

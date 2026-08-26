@@ -391,7 +391,8 @@ export default function AvaliacoesScreen() {
       const clinic_id = state.user?.clinicId;
       let ok = 0; let err = 0;
       for (const row of xlsxImportRows) {
-        const child = data.children.find((c) => c.name.toLowerCase().includes(row.child_name.toLowerCase().slice(0, 6)));
+        const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+        const child = data.children.find((c) => normalize(c.name) === normalize(row.child_name));
         const child_id = child?.id ?? selectedChildId;
         if (!child_id) { err++; continue; }
         const { data: created, error } = await supabase.from('avaliacoes').insert({

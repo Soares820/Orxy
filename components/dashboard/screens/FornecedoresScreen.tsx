@@ -31,7 +31,7 @@ const s = (base: React.CSSProperties) => base;
 export default function FornecedoresScreen() {
   const { state, dispatch } = useApp();
   const clinicId = state.user?.clinicId ?? '';
-  const fornecedores = state.data.fornecedores ?? [];
+  const fornecedores = useMemo(() => state.data.fornecedores ?? [], [state.data.fornecedores]);
 
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState<string>('todos');

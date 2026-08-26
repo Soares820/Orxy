@@ -43,7 +43,7 @@ interface Instrumento {
 // ── M-CHAT-R ──────────────────────────────────────────────
 const MCHAT_Q: Questao[] = [
   { id:'q1', num:1, texto:'Se você apontar para algo no outro lado do quarto, seu filho olha para ele?', opcoes:[{valor:'sim',label:'Sim'},{valor:'nao',label:'Não'}], riscoSe:'nao' },
-  { id:'q2', num:2, texto:'Você já se perguntou se seu filho pode ter surdez?', opcoes:[{valor:'sim',label:'Sim'},{valor:'nao',label:'Não'}], riscoSe:'sim' },
+  { id:'q2', num:2, texto:'Você já se perguntou se seu filho pode ter surdez?', opcoes:[{valor:'sim',label:'Sim'},{valor:'nao',label:'Não'}], riscoSe:'sim', categoria:'crítico' },
   { id:'q3', num:3, texto:'Seu filho brinca de faz-de-conta? (ex: finge beber de copo vazio, falar no telefone, alimentar boneca)', opcoes:[{valor:'sim',label:'Sim'},{valor:'nao',label:'Não'}], riscoSe:'nao' },
   { id:'q4', num:4, texto:'Seu filho gosta de subir em coisas? (móveis, parquinho, escadas)', opcoes:[{valor:'sim',label:'Sim'},{valor:'nao',label:'Não'}], riscoSe:'nao' },
   { id:'q5', num:5, texto:'Seu filho faz movimentos incomuns com os dedos perto dos olhos? (ex: mexe os dedos perto do rosto)', opcoes:[{valor:'sim',label:'Sim'},{valor:'nao',label:'Não'}], riscoSe:'sim' },

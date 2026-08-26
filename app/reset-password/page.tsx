@@ -16,6 +16,7 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -93,6 +94,7 @@ export default function ResetPasswordPage() {
                   placeholder="seu@email.com.br"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                  autoComplete="email"
                   autoFocus
                 />
               </div>
@@ -139,23 +141,39 @@ export default function ResetPasswordPage() {
             <form onSubmit={handleUpdate}>
               <div className="af-group">
                 <label className="af-label">Nova senha *</label>
-                <input
-                  className="af-input"
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                  autoFocus
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="af-input"
+                    type={showPass ? 'text' : 'password'}
+                    placeholder="Mínimo 6 caracteres"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                    autoComplete="new-password"
+                    autoFocus
+                    style={{ paddingRight: 44 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                    style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(255,255,255,.35)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  >
+                    {showPass
+                      ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
               </div>
               <div className="af-group">
                 <label className="af-label">Confirmar nova senha *</label>
                 <input
                   className="af-input"
-                  type="password"
+                  type={showPass ? 'text' : 'password'}
                   placeholder="Repita a senha"
                   value={confirm}
                   onChange={(e) => { setConfirm(e.target.value); setError(''); }}
+                  autoComplete="new-password"
                 />
               </div>
               {error && (

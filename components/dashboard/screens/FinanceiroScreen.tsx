@@ -851,7 +851,8 @@ export default function FinanceiroScreen() {
       const clinic_id = state.user?.clinicId;
       let ok = 0; let err = 0;
       for (const row of pagImportRows) {
-        const child = data.children.find((c) => c.name.toLowerCase().includes(row.child_name.toLowerCase().slice(0, 6)));
+        const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+        const child = data.children.find((c) => normalize(c.name) === normalize(row.child_name));
         if (!child) { err++; continue; }
         const { data: created, error } = await supabase.from('pagamentos').insert({
           child_id: child.id, clinic_id, mes: row.mes,
