@@ -73,6 +73,7 @@ export default function RegisterPage() {
             role: 'admin',
             phone: form.phone,
           },
+          emailRedirectTo: `${window.location.origin}/login`,
         },
       });
 
