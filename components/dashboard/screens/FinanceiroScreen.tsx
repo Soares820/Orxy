@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { formatCurrency, MONTH_NAMES, getLastNMonths } from '@/lib/utils';
+import { formatCurrency, MONTH_NAMES, getLastNMonths, todayLocalISO, currentMonthLocal } from '@/lib/utils';
 import { exportToExcel, exportToCSV, parseFile, mapDespesa, mapPagamento } from '@/lib/xlsx-utils';
 import type { Pagamento, Contrato, Despesa } from '@/lib/types';
 
@@ -442,7 +442,7 @@ function DreTab() {
   const { state } = useApp();
   const { data } = state;
   const months12 = useMemo(() => getLastNMonths(12), []);
-  const [selectedMes, setSelectedMes] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedMes, setSelectedMes] = useState(currentMonthLocal());
   const [viewMode, setViewMode] = useState<'mensal' | 'anual'>('mensal');
 
   const monthOptions = useMemo(() => {
@@ -670,12 +670,12 @@ export default function FinanceiroScreen() {
   const { data } = state;
 
   const [tab, setTab] = useState<TabType>('pagamentos');
-  const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
+  const [monthFilter, setMonthFilter] = useState(currentMonthLocal());
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [showPayModal, setShowPayModal] = useState(false);
   const [selectedPay, setSelectedPay] = useState<Pagamento | null>(null);
-  const [payForm, setPayForm] = useState({ child_id: '', mes: new Date().toISOString().slice(0, 7), valor_previsto: '', valor_recebido: '0', status: 'pendente' });
+  const [payForm, setPayForm] = useState({ child_id: '', mes: currentMonthLocal(), valor_previsto: '', valor_recebido: '0', status: 'pendente' });
   const [savingPay, setSavingPay] = useState(false);
 
   const [showContractModal, setShowContractModal] = useState(false);
@@ -684,7 +684,7 @@ export default function FinanceiroScreen() {
 
   const [showExpModal, setShowExpModal] = useState(false);
   const [selectedExp, setSelectedExp] = useState<Despesa | null>(null);
-  const [expForm, setExpForm] = useState({ descricao: '', categoria: 'adm' as Despesa['categoria'], valor: '', mes: new Date().toISOString().slice(0, 7), data: '', status: 'pago' as Despesa['status'], recorrente: false, notas: '', fornecedor_id: '' });
+  const [expForm, setExpForm] = useState({ descricao: '', categoria: 'adm' as Despesa['categoria'], valor: '', mes: currentMonthLocal(), data: '', status: 'pago' as Despesa['status'], recorrente: false, notas: '', fornecedor_id: '' });
   const [expMeses, setExpMeses] = useState(1);
   const [savingExp, setSavingExp] = useState(false);
   const [darBaixaLoading, setDarBaixaLoading] = useState<number | null>(null);
@@ -776,7 +776,7 @@ export default function FinanceiroScreen() {
     setSavingPay(true); setSaveError(null);
     try {
       const { supabase } = await import('@/lib/supabase');
-      const payload = { clinic_id: state.user?.clinicId, child_id: Number(payForm.child_id), mes: payForm.mes, valor_previsto: Number(payForm.valor_previsto), valor_recebido: Number(payForm.valor_recebido), status: payForm.status, data_pag: payForm.status === 'recebido' ? new Date().toISOString().slice(0, 10) : null };
+      const payload = { clinic_id: state.user?.clinicId, child_id: Number(payForm.child_id), mes: payForm.mes, valor_previsto: Number(payForm.valor_previsto), valor_recebido: Number(payForm.valor_recebido), status: payForm.status, data_pag: payForm.status === 'recebido' ? todayLocalISO() : null };
       if (selectedPay) {
         const { data: upd, error } = await supabase.from('pagamentos').update(payload).eq('id', selectedPay.id).select().single();
         if (error) { setSaveError(error.message); return; }
@@ -793,7 +793,7 @@ export default function FinanceiroScreen() {
 
   async function markReceived(p: Pagamento) {
     const { supabase } = await import('@/lib/supabase');
-    const { data: upd } = await supabase.from('pagamentos').update({ status: 'recebido', valor_recebido: p.valor_previsto, data_pag: new Date().toISOString().slice(0, 10) }).eq('id', p.id).select().single();
+    const { data: upd } = await supabase.from('pagamentos').update({ status: 'recebido', valor_recebido: p.valor_previsto, data_pag: todayLocalISO() }).eq('id', p.id).select().single();
     if (upd) dispatch({ type: 'UPDATE_PAYMENT', payload: upd });
   }
 
@@ -893,7 +893,7 @@ export default function FinanceiroScreen() {
     const valorMensal = (c.valor_sessao ?? 0) * (c.sessoes_semanais ?? 0) * 4;
     try {
       const { supabase } = await import('@/lib/supabase');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayLocalISO();
 
       // tenta encontrar pagamento existente por contrato_id
       const existingByContrato = data.payments.find((p) => p.contrato_id != null && p.contrato_id === c.id && p.mes === mes);
@@ -955,7 +955,7 @@ export default function FinanceiroScreen() {
 
   async function darBaixaDespesa(e: Despesa) {
     const { supabase } = await import('@/lib/supabase');
-    const { data: upd } = await supabase.from('despesas').update({ status: 'pago', data: e.data || new Date().toISOString().slice(0, 10) }).eq('id', e.id).select().single();
+    const { data: upd } = await supabase.from('despesas').update({ status: 'pago', data: e.data || todayLocalISO() }).eq('id', e.id).select().single();
     if (upd) dispatch({ type: 'UPDATE_EXPENSE', payload: upd });
   }
 

@@ -2,6 +2,7 @@
 // Usado em PacientesScreen, FinanceiroScreen e AvaliacoesScreen
 
 import * as XLSX from 'xlsx';
+import { currentMonthLocal } from './utils';
 
 // ─── EXPORT ──────────────────────────────────────────────────
 
@@ -122,12 +123,12 @@ export function mapPagamento(row: Record<string, unknown>): PagamentoImport {
   let mes = mesRaw;
   if (mesRaw && !mesRaw.match(/^\d{4}-\d{2}/)) {
     const d = pickDate(row, 'mes', 'competencia', 'data', 'vencimento');
-    mes = d ? d.slice(0, 7) : new Date().toISOString().slice(0, 7);
+    mes = d ? d.slice(0, 7) : currentMonthLocal();
   }
 
   return {
     child_name:     pick(row, 'paciente', 'nome_paciente', 'cliente', 'nome'),
-    mes:            mes || new Date().toISOString().slice(0, 7),
+    mes:            mes || currentMonthLocal(),
     valor_previsto: pickNum(row, 'valor', 'valor_previsto', 'mensalidade', 'valor_total'),
     valor_recebido: pickNum(row, 'valor_recebido', 'valor_pago', 'recebido'),
     status,
@@ -170,7 +171,7 @@ export function mapDespesa(row: Record<string, unknown>): DespesaImport {
   const dataRaw = pickDate(row, 'data', 'data_vencimento', 'vencimento', 'data_pagamento');
   let mes = mesRaw;
   if (!mes?.match(/^\d{4}-\d{2}/)) {
-    mes = dataRaw ? dataRaw.slice(0, 7) : new Date().toISOString().slice(0, 7);
+    mes = dataRaw ? dataRaw.slice(0, 7) : currentMonthLocal();
   }
 
   return {

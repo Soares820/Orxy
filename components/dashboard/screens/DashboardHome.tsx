@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import type { Screen } from '@/lib/types';
+import { todayLocalISO, currentMonthLocal } from '@/lib/utils';
 
 interface Props {
   onNav: (screen: Screen) => void;
@@ -13,8 +14,8 @@ export default function DashboardHome({ onNav }: Props) {
   const { data, user } = state;
 
   const stats = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const thisMonth = new Date().toISOString().slice(0, 7);
+    const today = todayLocalISO();
+    const thisMonth = currentMonthLocal();
 
     const active = data.children.filter((c) => c.status === 'ativo').length;
     const todaySessions = data.sessions.filter((s) => s.data === today).length;

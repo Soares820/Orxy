@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { getLastNMonths, MONTH_NAMES } from '@/lib/utils';
+import { getLastNMonths, MONTH_NAMES, todayLocalISO, toLocalISODate, currentMonthLocal } from '@/lib/utils';
 
 type BiTab = 'evolucao' | 'clinica';
 
@@ -44,7 +44,7 @@ function BiClinica() {
   const { data } = state;
 
   const months6 = useMemo(() => getLastNMonths(6), []);
-  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const currentMonth = useMemo(() => currentMonthLocal(), []);
 
   // ── KPIs ──────────────────────────────────────────────
   const kpis = useMemo(() => {
@@ -498,9 +498,9 @@ function BiEvolucao() {
   const [search, setSearch] = useState('');
   const [dropOpen, setDropOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState<string>(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10);
+    const d = new Date(); d.setMonth(d.getMonth() - 3); return toLocalISODate(d);
   });
-  const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [dateTo, setDateTo] = useState<string>(() => todayLocalISO());
 
   const months = useMemo(() => getLastNMonths(6), []);
   const child = useMemo(() => data.children.find((c) => c.id === selectedChildId), [data.children, selectedChildId]);
@@ -578,8 +578,8 @@ function BiEvolucao() {
 
   const setPreset = (months: number) => {
     const d = new Date(); d.setMonth(d.getMonth() - months);
-    setDateFrom(d.toISOString().slice(0, 10));
-    setDateTo(new Date().toISOString().slice(0, 10));
+    setDateFrom(toLocalISODate(d));
+    setDateTo(todayLocalISO());
   };
 
   return (

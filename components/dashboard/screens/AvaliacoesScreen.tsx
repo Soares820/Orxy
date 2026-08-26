@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { formatDate } from '@/lib/utils';
+import { formatDate, todayLocalISO } from '@/lib/utils';
 import { parseFile, mapAvaliacao } from '@/lib/xlsx-utils';
 import type { Avaliacao } from '@/lib/types';
 
@@ -225,7 +225,7 @@ export default function AvaliacoesScreen() {
   }, [data.children, selectedChildId]);
   const [form, setForm] = useState({
     tipo: 'PEDI' as TipoAvaliacao,
-    data: new Date().toISOString().slice(0, 10),
+    data: todayLocalISO(),
     notas: '',
     instrumento_nome: '',
     scores: {} as Record<string, string>,
@@ -257,7 +257,7 @@ export default function AvaliacoesScreen() {
     setSelectedAval(null);
     setForm({
       tipo: 'PEDI',
-      data: new Date().toISOString().slice(0, 10),
+      data: todayLocalISO(),
       notas: '',
       instrumento_nome: '',
       scores: buildEmptyScores('PEDI'),
@@ -351,7 +351,7 @@ export default function AvaliacoesScreen() {
         if (typeof item !== 'object' || item === null) continue;
         const row = item as Record<string, unknown>;
         const tipo = String(row.tipo ?? row.instrumento ?? 'Personalizado');
-        const dataStr = String(row.data ?? row.data_avaliacao ?? new Date().toISOString().slice(0, 10)).slice(0, 10);
+        const dataStr = String(row.data ?? row.data_avaliacao ?? todayLocalISO()).slice(0, 10);
         const notas = String(row.notas ?? row.observacoes ?? row.interpretacao ?? '').slice(0, 2000) || null;
         const scores: Record<string, unknown> = typeof row.scores === 'object' && row.scores !== null ? row.scores as Record<string, unknown> : {};
         if (row.instrumento_nome) scores.instrumento_nome = String(row.instrumento_nome);
@@ -398,7 +398,7 @@ export default function AvaliacoesScreen() {
         const { data: created, error } = await supabase.from('avaliacoes').insert({
           clinic_id, child_id,
           tipo: TIPOS.includes(row.tipo as TipoAvaliacao) ? row.tipo : 'Personalizado',
-          data: row.data || new Date().toISOString().slice(0, 10),
+          data: row.data || todayLocalISO(),
           notas: row.notas || null,
           scores: row.scores,
         }).select().single();

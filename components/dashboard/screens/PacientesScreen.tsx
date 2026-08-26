@@ -115,6 +115,7 @@ export default function PacientesScreen() {
 
   async function handleSendInvite() {
     if (!form.email_responsavel || !state.user?.clinicId) return;
+    if (!selected?.id) { setInviteMsg('Erro: salve o paciente antes de enviar o convite.'); return; }
     setInviting(true);
     setInviteMsg('');
     try {
@@ -131,6 +132,7 @@ export default function PacientesScreen() {
           cargo: 'Família',
           role: 'familia',
           invited_by: state.user.name,
+          paciente_id: selected.id,
         }),
       });
       const result = await res.json();

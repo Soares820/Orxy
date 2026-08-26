@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import type { Sessao } from '@/lib/types';
+import { todayLocalISO, toLocalISODate } from '@/lib/utils';
 
 const WDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -27,7 +28,7 @@ export default function AgendaScreen() {
   const { state, dispatch } = useApp();
   const { data } = state;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocalISO();
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -239,7 +240,7 @@ export default function AgendaScreen() {
               const weekDates = Array.from({ length: 7 }, (_, i) => {
                 const d = new Date(monday);
                 d.setDate(monday.getDate() + i);
-                return d.toISOString().slice(0, 10);
+                return toLocalISODate(d);
               });
               const total = weekDates.reduce((sum, d) => sum + (sessionsByDate[d]?.length ?? 0), 0);
               const done  = weekDates.reduce((sum, d) => sum + (sessionsByDate[d]?.filter(s => s.status === 'realizado').length ?? 0), 0);

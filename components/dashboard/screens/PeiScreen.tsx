@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { toLocalISODate } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────
 interface Atividade {
@@ -187,7 +188,7 @@ function DttModal({ atividade, pacienteNome, pacienteId, clinicId, onClose }: { 
       await supabase.from('sessoes').insert({
         clinic_id: clinicId,
         child_id: pacienteId,
-        data: now.toISOString().slice(0, 10),
+        data: toLocalISODate(now),
         hora: now.toTimeString().slice(0, 5),
         tipo: `DTT - ${atividade.nome}`,
         status: 'realizado',

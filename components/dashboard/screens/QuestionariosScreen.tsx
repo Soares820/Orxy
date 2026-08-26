@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { supabase } from '@/lib/supabase';
+import { todayLocalISO } from '@/lib/utils';
 import type { QuestionarioResposta } from '@/lib/types';
 
 // ─────────────────────────────────────────────────────────────
@@ -269,7 +270,7 @@ export default function QuestionariosScreen() {
   const [viewItem, setViewItem] = useState<QuestionarioResposta | null>(null);
   const [respondente, setRespondente] = useState('');
   const [obs, setObs] = useState('');
-  const [dataAval, setDataAval] = useState(new Date().toISOString().slice(0, 10));
+  const [dataAval, setDataAval] = useState(todayLocalISO());
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [importTxt, setImportTxt] = useState('');
@@ -302,7 +303,7 @@ export default function QuestionariosScreen() {
     setResultado(null);
     setRespondente('');
     setObs('');
-    setDataAval(new Date().toISOString().slice(0, 10));
+    setDataAval(todayLocalISO());
     setFase('preencher');
   }
 
@@ -366,7 +367,7 @@ export default function QuestionariosScreen() {
           nivel_risco: calc.nivel,
           interpretacao: calc.interpretacao,
           observacoes: entry.observacoes ?? '',
-          data_avaliacao: entry.data_avaliacao ?? new Date().toISOString().slice(0, 10),
+          data_avaliacao: entry.data_avaliacao ?? todayLocalISO(),
         });
       }
       await loadHistorico();

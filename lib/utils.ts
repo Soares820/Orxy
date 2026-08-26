@@ -45,6 +45,26 @@ export function escHtml(s: string): string {
 export const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 export const MONTH_NAMES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+// Converte um Date pro fuso LOCAL como YYYY-MM-DD. NUNCA usar d.toISOString()
+// pra isso quando `d` carrega um horário real (não meia-noite) — toISOString()
+// converte pra UTC, e o Brasil (UTC-3/-5) já vira o dia seguinte em UTC a
+// partir do fim da tarde/noite local, fazendo qualquer tela que dependa de
+// "hoje" (ou de uma data derivada de "agora") mostrar o dia errado à noite.
+export function toLocalISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// "Hoje" no fuso local, como YYYY-MM-DD. Ver toLocalISODate().
+export function todayLocalISO(): string {
+  return toLocalISODate(new Date());
+}
+
+// "Mês atual" no fuso local, como YYYY-MM. Mesmo motivo de todayLocalISO().
+export function currentMonthLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 // Returns array of 'YYYY-MM' strings for the last N months (oldest first)
 export function getLastNMonths(n: number): string[] {
   const now = new Date();
