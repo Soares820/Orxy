@@ -60,7 +60,7 @@ export default function ContaScreen() {
     trial: { name: 'Trial', price: 'Grátis por 14 dias', features: ['Todos os recursos do Pro', 'Suporte por e-mail', 'Sem cartão de crédito'] },
     basico: { name: 'Básico', price: 'R$ 149/mês', features: ['Até 10 pacientes', 'Agenda e sessões', 'Financeiro básico', 'Portal da família'] },
     pro: { name: 'Pro', price: 'R$ 299/mês', features: ['Pacientes ilimitados', 'BI avançado', 'Assistente Clínico', 'Atividades e DTT', 'Equipe ilimitada', 'Suporte prioritário'] },
-    enterprise: { name: 'Enterprise', price: 'Sob consulta', features: ['Multi-unidades', 'API de integração', 'SLA dedicado', 'Treinamento exclusivo'] },
+    enterprise: { name: 'Enterprise', price: 'Sob consulta', features: ['Multi-unidades', 'SLA dedicado', 'Treinamento exclusivo'] },
   };
 
   const plan = PLAN_FEATURES[user?.plan ?? 'trial'];
