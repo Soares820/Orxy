@@ -1,16 +1,199 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import type { Screen } from '@/lib/types';
+import type { Screen, Sessao, Meta, Avaliacao } from '@/lib/types';
+import { formatDate } from '@/lib/utils';
+import { SCORE_DEFS, TIPO_DESC } from './AvaliacoesScreen';
 
 interface Props {
   onNav?: (s: Screen) => void;
 }
 
+type PortalView = 'home' | 'evolucao' | 'atividades' | 'marcos' | 'sessoes';
+
+const SESSAO_STATUS_LABEL: Record<Sessao['status'], string> = {
+  agendado: 'Agendada',
+  realizado: 'Realizada',
+  cancelado: 'Cancelada',
+  falta: 'Falta',
+};
+
+const SESSAO_STATUS_COLOR: Record<Sessao['status'], string> = {
+  agendado: '#60A5FA',
+  realizado: '#34D399',
+  cancelado: '#94A3B8',
+  falta: '#F87171',
+};
+
+function BackHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+      <button
+        onClick={onBack}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 36, height: 36, borderRadius: 10, border: '1px solid var(--bdr)',
+          background: 'var(--sf)', color: 'var(--t2)', cursor: 'pointer', flexShrink: 0,
+        }}
+        title="Voltar"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+        </svg>
+      </button>
+      <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)', margin: 0 }}>{title}</h1>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--t3)', fontSize: 14 }}>
+      {text}
+    </div>
+  );
+}
+
+function ScoreBar({ label, value, min, max, unit }: { label: string; value: number; min: number; max: number; unit?: string }) {
+  const pct = max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 0;
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--t2)', marginBottom: 4 }}>
+        <span>{label}</span>
+        <span style={{ fontWeight: 700, color: 'var(--t1)' }}>{value}{unit ? ` ${unit}` : ''}</span>
+      </div>
+      <div style={{ height: 6, borderRadius: 4, background: 'var(--sf2)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 4, background: 'linear-gradient(90deg,#2563EB,#7C3AED)' }} />
+      </div>
+    </div>
+  );
+}
+
+function EvolucaoView({ evaluations }: { evaluations: Avaliacao[] }) {
+  const byTipo = useMemo(() => {
+    const groups = new Map<Avaliacao['tipo'], Avaliacao[]>();
+    for (const ev of evaluations) {
+      const list = groups.get(ev.tipo) ?? [];
+      list.push(ev);
+      groups.set(ev.tipo, list);
+    }
+    Array.from(groups.values()).forEach((list) => list.sort((a, b) => a.data.localeCompare(b.data)));
+    return Array.from(groups.entries()).sort((a, b) => {
+      const lastA = a[1][a[1].length - 1]?.data ?? '';
+      const lastB = b[1][b[1].length - 1]?.data ?? '';
+      return lastB.localeCompare(lastA);
+    });
+  }, [evaluations]);
+
+  if (byTipo.length === 0) {
+    return <EmptyState text="Ainda não há avaliações registradas para acompanhar a evolução." />;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {byTipo.map(([tipo, list]) => {
+        const first = list[0];
+        const last = list[list.length - 1];
+        const defs = SCORE_DEFS[tipo];
+        return (
+          <div key={tipo} style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 16, padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{tipo}</div>
+              <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+                {list.length > 1 ? `${formatDate(first.data)} → ${formatDate(last.data)}` : formatDate(last.data)}
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 14 }}>{TIPO_DESC[tipo]}</div>
+
+            {defs ? (
+              defs.map((def) => {
+                const lastVal = Number(last.scores?.[def.key]);
+                if (Number.isNaN(lastVal)) return null;
+                const firstVal = list.length > 1 ? Number(first.scores?.[def.key]) : null;
+                const delta = firstVal !== null && !Number.isNaN(firstVal) ? lastVal - firstVal : null;
+                return (
+                  <div key={def.key}>
+                    <ScoreBar label={def.label} value={lastVal} min={def.min} max={def.max} unit={def.unit} />
+                    {delta !== null && delta !== 0 && (
+                      <div style={{ fontSize: 11, color: delta > 0 ? '#34D399' : '#F87171', marginTop: -6, marginBottom: 8 }}>
+                        {delta > 0 ? '↑' : '↓'} {Math.abs(delta)} desde a primeira avaliação
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              Object.entries(last.scores ?? {}).map(([key, val]) => (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0', color: 'var(--t2)' }}>
+                  <span>{key}</span><span style={{ fontWeight: 700, color: 'var(--t1)' }}>{String(val)}</span>
+                </div>
+              ))
+            )}
+            {list.length > 1 && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>{list.length} avaliações registradas</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GoalListView({ goals, emptyText }: { goals: Meta[]; emptyText: string }) {
+  if (goals.length === 0) return <EmptyState text={emptyText} />;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {goals.map((g) => (
+        <div key={g.id} style={{ background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 14, padding: '14px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{g.nome ?? g.descricao}</div>
+            {g.area && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#A78BFA', background: 'rgba(124,58,237,.14)', padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                {g.area}
+              </span>
+            )}
+          </div>
+          {g.nome && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>{g.descricao}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SessoesView({ sessions }: { sessions: Sessao[] }) {
+  const sorted = useMemo(
+    () => [...sessions].sort((a, b) => (b.data + b.hora).localeCompare(a.data + a.hora)),
+    [sessions],
+  );
+  if (sorted.length === 0) return <EmptyState text="Ainda não há sessões registradas." />;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {sorted.map((s) => (
+        <div key={s.id} style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+          background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 12, padding: '12px 18px',
+        }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{s.tipo}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+              {formatDate(s.data)} às {s.hora}{s.duracao_min ? ` · ${s.duracao_min} min` : ''}
+            </div>
+          </div>
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: SESSAO_STATUS_COLOR[s.status],
+            background: `${SESSAO_STATUS_COLOR[s.status]}26`, padding: '4px 12px', borderRadius: 20, whiteSpace: 'nowrap',
+          }}>
+            {SESSAO_STATUS_LABEL[s.status]}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PortalScreen(_props: Props) {
   const { state } = useApp();
   const { data, user } = state;
+  const [view, setView] = useState<PortalView>('home');
 
   const isClinicView = user?.role !== 'familia';
 
@@ -29,14 +212,20 @@ export default function PortalScreen(_props: Props) {
     return data.goals.filter((g) => g.child_id === myChild.id);
   }, [data.goals, myChild]);
 
+  const childEvaluations = useMemo(() => {
+    if (!myChild) return [];
+    return data.evaluations.filter((e) => e.child_id === myChild.id);
+  }, [data.evaluations, myChild]);
+
+  const atividades = useMemo(() => childGoals.filter((g) => g.tipo_registro === 'atividade'), [childGoals]);
+  const marcos = useMemo(() => childGoals.filter((g) => g.status === 'atingido'), [childGoals]);
+
   const progressPct = useMemo(() => {
     const done = childGoals.filter((g) => g.status === 'atingido').length;
     return childGoals.length > 0 ? Math.round((done / childGoals.length) * 100) : 0;
   }, [childGoals]);
 
-  const marcosCount = useMemo(() =>
-    childGoals.filter((g) => g.status === 'atingido').length,
-  [childGoals]);
+  const marcosCount = marcos.length;
 
   const nextSession = useMemo(() => {
     const future = childSessions
@@ -51,9 +240,9 @@ export default function PortalScreen(_props: Props) {
 
   const tiles = [
     {
-      key: 'bi' as Screen,
+      key: 'evolucao' as PortalView,
       label: 'Evolução',
-      sub: 'BI e gráficos de progresso',
+      sub: 'Avaliações e progresso',
       color: 'dt-blue',
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -62,9 +251,9 @@ export default function PortalScreen(_props: Props) {
       ),
     },
     {
-      key: 'agenda' as Screen,
+      key: 'atividades' as PortalView,
       label: 'Atividades',
-      sub: 'Tarefas e exercícios diários',
+      sub: 'Tarefas e exercícios',
       color: 'dt-orange',
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -74,7 +263,7 @@ export default function PortalScreen(_props: Props) {
       ),
     },
     {
-      key: 'pei' as Screen,
+      key: 'marcos' as PortalView,
       label: 'Marcos',
       sub: 'Conquistas e metas atingidas',
       color: 'dt-green',
@@ -85,18 +274,7 @@ export default function PortalScreen(_props: Props) {
       ),
     },
     {
-      key: 'reavix' as Screen,
-      label: 'Mensagens',
-      sub: 'Chat com a equipe clínica',
-      color: 'dt-teal',
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        </svg>
-      ),
-    },
-    {
-      key: 'agenda' as Screen,
+      key: 'sessoes' as PortalView,
       label: 'Sessões',
       sub: 'Histórico de atendimentos',
       color: 'dt-purple',
@@ -123,6 +301,26 @@ export default function PortalScreen(_props: Props) {
             Seu acesso ainda não foi vinculado a um paciente. Entre em contato com a clínica para liberar o acompanhamento pelo Portal da Família.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (view !== 'home') {
+    const titles: Record<PortalView, string> = {
+      home: '', evolucao: 'Evolução', atividades: 'Atividades', marcos: 'Marcos', sessoes: 'Sessões',
+    };
+    return (
+      <div className="dash-content">
+        {isClinicView && (
+          <div style={{ background: 'rgba(245,158,11,.15)', border: '1px solid rgba(245,158,11,.35)', borderRadius: 10, padding: '10px 18px', fontSize: 12, color: '#FBBF24', fontWeight: 600, alignSelf: 'flex-start' }}>
+            Preview — Assim as famílias verão o Portal
+          </div>
+        )}
+        <BackHeader title={titles[view]} onBack={() => setView('home')} />
+        {view === 'evolucao' && <EvolucaoView evaluations={childEvaluations} />}
+        {view === 'atividades' && <GoalListView goals={atividades} emptyText="Nenhuma atividade registrada ainda." />}
+        {view === 'marcos' && <GoalListView goals={marcos} emptyText="Nenhum marco atingido ainda — continue acompanhando!" />}
+        {view === 'sessoes' && <SessoesView sessions={childSessions} />}
       </div>
     );
   }
@@ -169,7 +367,7 @@ export default function PortalScreen(_props: Props) {
           <button
             key={tile.label}
             className={`dash-tile ${tile.color}`}
-            style={{ cursor: 'default', opacity: 0.85 }}
+            onClick={() => setView(tile.key)}
           >
             <div className="dt-ico">{tile.icon}</div>
             <div className="dt-body">

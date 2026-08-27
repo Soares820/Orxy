@@ -10,7 +10,7 @@ type TipoAvaliacao = Avaliacao['tipo'];
 
 const TIPOS: TipoAvaliacao[] = ['PEDI', 'PS', 'SPM', 'ABLLS', 'VBMAPP', 'CARS', 'Vineland', 'Personalizado', 'Outro'];
 
-const TIPO_DESC: Record<TipoAvaliacao, string> = {
+export const TIPO_DESC: Record<TipoAvaliacao, string> = {
   PEDI: 'Inventário de Avaliação Pediátrica de Incapacidade',
   PS: 'Perfil Sensorial 2 (Dunn)',
   SPM: 'Medida de Processamento Sensorial',
@@ -22,7 +22,7 @@ const TIPO_DESC: Record<TipoAvaliacao, string> = {
   Outro: 'Outro instrumento clínico',
 };
 
-interface ScoreDef {
+export interface ScoreDef {
   key: string;
   label: string;
   min: number;
@@ -31,7 +31,7 @@ interface ScoreDef {
   step?: number;
 }
 
-const SCORE_DEFS: Partial<Record<TipoAvaliacao, ScoreDef[]>> = {
+export const SCORE_DEFS: Partial<Record<TipoAvaliacao, ScoreDef[]>> = {
   PEDI: [
     { key: 'autocuidado', label: 'Autocuidado', min: 0, max: 100, unit: 'pts' },
     { key: 'mobilidade', label: 'Mobilidade', min: 0, max: 100, unit: 'pts' },

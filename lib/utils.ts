@@ -6,7 +6,14 @@ export function formatCurrency(value: number | null | undefined): string {
 
 export function formatDate(iso: string | null | undefined, opts?: Intl.DateTimeFormatOptions): string {
   if (!iso) return '';
-  const d = new Date(iso);
+  // Datas "puras" (colunas DATE do Postgres, ex: sessoes.data) não têm fuso —
+  // new Date('YYYY-MM-DD') interpreta como UTC meia-noite, e toLocaleDateString
+  // converte pro fuso local, voltando um dia em qualquer timezone negativo
+  // (ex: Brasil). Nesse caso construímos a data com os componentes locais.
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const d = dateOnlyMatch
+    ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+    : new Date(iso);
   return d.toLocaleDateString('pt-BR', opts ?? { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
