@@ -1,3 +1,4 @@
+body{background:#040b18}
 .trial-banner{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#D97706,#F59E0B);color:#fff;padding:8px 16px;text-align:center;font-size:13px;font-weight:600;gap:12px;align-items:center;justify-content:center}
 .trial-banner.vis{display:flex}
 .trial-banner a{color:#fff;text-decoration:underline;cursor:pointer;font-weight:700}
@@ -37,7 +38,7 @@
 
 .lp-content{position:relative;z-index:1;padding-top:68px}
 
-.lp-hero{min-height:100vh;display:flex;align-items:center;padding:60px max(5%,28px) 80px}
+.lp-hero{min-height:100vh;min-height:100dvh;display:flex;align-items:center;padding:60px max(5%,28px) 80px}
 .lp-hero-inner{max-width:1200px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr .85fr;gap:72px;align-items:center}
 .lp-hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(109,40,217,.12);border:1px solid rgba(109,40,217,.28);border-radius:99px;padding:5px 14px 5px 8px;margin-bottom:26px;width:fit-content}
 .lp-badge-dot{width:7px;height:7px;border-radius:50%;background:#6D28D9;box-shadow:0 0 8px #6D28D9;flex-shrink:0}
