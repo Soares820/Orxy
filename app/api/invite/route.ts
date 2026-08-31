@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (linkError || !linkData?.properties?.action_link || !linkData.user) {
+    if (linkError || !linkData?.properties?.hashed_token || !linkData.user) {
       throw linkError ?? new Error('Falha ao gerar link de convite');
     }
 
@@ -125,7 +125,15 @@ export async function POST(req: NextRequest) {
     });
     if (metaError) throw metaError;
 
-    const inviteUrl = linkData.properties.action_link;
+    // NÃO usar linkData.properties.action_link diretamente: é uma URL do
+    // próprio Supabase que confirma e consome o token com um simples GET.
+    // Se esse link for colado no WhatsApp/Telegram/etc., o bot de preview
+    // do app busca a URL pra gerar o card e consome o convite sozinho,
+    // sem nenhum humano clicar — a pessoa nunca chega a criar senha.
+    // Por isso apontamos para uma página nossa (/accept-invite) que só
+    // troca o token por sessão quando o usuário clica de verdade (bots de
+    // preview não executam JavaScript).
+    const inviteUrl = `${appUrl}/accept-invite?token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=${encodeURIComponent(linkData.properties.verification_type)}`;
     let emailSent = false;
     let emailError: string | undefined;
 
