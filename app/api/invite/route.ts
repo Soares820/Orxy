@@ -75,6 +75,23 @@ export async function POST(req: NextRequest) {
       .single();
     if (existing) return NextResponse.json({ error: 'Este email já está cadastrado nesta clínica.' }, { status: 409 });
 
+    // O Supabase Auth recusa gerar um convite ('invite') para um e-mail que já
+    // existe em auth.users — inclusive convites antigos nunca concluídos (o
+    // usuário foi criado mas nunca definiu senha). Sem isso, reenviar um
+    // convite para o mesmo e-mail (ex: primeira tentativa falhou depois de
+    // criar o usuário) quebra com 500 para sempre. Detecta esse caso e limpa
+    // o registro órfão antes de gerar o link — nunca mexe em conta que já
+    // tem e-mail confirmado ou perfil em `users` (conta real de alguém).
+    const { data: authList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const existingAuthUser = authList?.users.find((u) => u.email === email);
+    if (existingAuthUser) {
+      if (existingAuthUser.email_confirmed_at) {
+        return NextResponse.json({ error: 'Este e-mail já possui uma conta ativa no sistema.' }, { status: 409 });
+      }
+      // Convite abandonado (usuário nunca concluiu o cadastro) — remove para poder reemitir.
+      await supabase.auth.admin.deleteUser(existingAuthUser.id);
+    }
+
     // Generate invite link via Supabase Auth Admin
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'invite',

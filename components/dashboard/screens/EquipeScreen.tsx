@@ -37,6 +37,13 @@ export default function EquipeScreen() {
   const [inviting, setInviting] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [cargoFocused, setCargoFocused] = useState(false);
+
+  const CARGO_SUGESTOES = [
+    'Terapeuta Ocupacional', 'Fonoaudióloga', 'Fonoaudiólogo', 'Psicopedagoga', 'Psicopedagogo',
+    'Psicóloga', 'Psicólogo', 'Fisioterapeuta', 'Técnica em ABA', 'Técnico em ABA',
+    'Coordenadora Clínica', 'Coordenador Clínico', 'Analista do Comportamento', 'Recepcionista', 'Administrativo',
+  ];
 
   const ROLE_LABELS: Record<string, string> = {
     admin: 'Administrador',
@@ -214,34 +221,39 @@ export default function EquipeScreen() {
                     </div>
                   </div>
                 ) : (
-                  <div>
+                  <div style={{ position: 'relative' }}>
                     <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 5 }}>
                       Cargo <span style={{ fontWeight: 400, color: 'var(--t3)' }}>(opcional)</span>
                     </label>
                     <input
                       value={inviteCargo}
                       onChange={(e) => setInviteCargo(e.target.value)}
+                      onFocus={() => setCargoFocused(true)}
+                      onBlur={() => setTimeout(() => setCargoFocused(false), 150)}
                       placeholder="Ex: Terapeuta Ocupacional, Fonoaudióloga..."
-                      list="cargo-suggestions"
+                      autoComplete="off"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
-                    <datalist id="cargo-suggestions">
-                      <option value="Terapeuta Ocupacional" />
-                      <option value="Fonoaudióloga" />
-                      <option value="Fonoaudiólogo" />
-                      <option value="Psicopedagoga" />
-                      <option value="Psicopedagogo" />
-                      <option value="Psicóloga" />
-                      <option value="Psicólogo" />
-                      <option value="Fisioterapeuta" />
-                      <option value="Técnica em ABA" />
-                      <option value="Técnico em ABA" />
-                      <option value="Coordenadora Clínica" />
-                      <option value="Coordenador Clínico" />
-                      <option value="Analista do Comportamento" />
-                      <option value="Recepcionista" />
-                      <option value="Administrativo" />
-                    </datalist>
+                    {cargoFocused && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 180, overflowY: 'auto', background: 'var(--sf)', border: '1px solid var(--bdr)', borderRadius: 10, boxShadow: 'var(--sh-lg)', zIndex: 10 }}>
+                        {CARGO_SUGESTOES.filter((c) => c.toLowerCase().includes(inviteCargo.trim().toLowerCase())).map((c) => (
+                          <div
+                            key={c}
+                            onMouseDown={() => { setInviteCargo(c); setCargoFocused(false); }}
+                            style={{ padding: '9px 12px', fontSize: 13, color: 'var(--t1)', cursor: 'pointer' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sf2)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            {c}
+                          </div>
+                        ))}
+                        {inviteCargo.trim() && !CARGO_SUGESTOES.some((c) => c.toLowerCase() === inviteCargo.trim().toLowerCase()) && (
+                          <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--t3)', borderTop: '1px solid var(--bdr)' }}>
+                            Usar "{inviteCargo.trim()}" como novo cargo
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
