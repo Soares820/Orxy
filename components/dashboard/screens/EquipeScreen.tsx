@@ -249,7 +249,7 @@ export default function EquipeScreen() {
                         ))}
                         {inviteCargo.trim() && !CARGO_SUGESTOES.some((c) => c.toLowerCase() === inviteCargo.trim().toLowerCase()) && (
                           <div style={{ padding: '9px 12px', fontSize: 12, color: 'var(--t3)', borderTop: '1px solid var(--bdr)' }}>
-                            Usar "{inviteCargo.trim()}" como novo cargo
+                            Usar &ldquo;{inviteCargo.trim()}&rdquo; como novo cargo
                           </div>
                         )}
                       </div>
