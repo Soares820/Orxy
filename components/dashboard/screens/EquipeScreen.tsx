@@ -40,6 +40,7 @@ export default function EquipeScreen() {
   const [cargoFocused, setCargoFocused] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   const CARGO_SUGESTOES = [
     'Terapeuta Ocupacional', 'Fonoaudióloga', 'Fonoaudiólogo', 'Psicopedagoga', 'Psicopedagogo',
@@ -69,6 +70,7 @@ export default function EquipeScreen() {
     setInviteSent(false);
     setInviteLink('');
     setInviteError('');
+    setEmailError('');
     setShowInvite(true);
   }
 
@@ -120,6 +122,7 @@ export default function EquipeScreen() {
         // o convite foi criado normalmente, então mantém o modal aberto com o
         // link para o admin compartilhar manualmente em vez de fingir sucesso.
         setInviteLink(json.inviteUrl ?? '');
+        setEmailError(json.emailError ?? '');
       }
     } catch {
       setInviteError('Erro de conexão. Tente novamente.');
@@ -196,9 +199,14 @@ export default function EquipeScreen() {
               <div style={{ textAlign: 'center', padding: '8px 0' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
                 <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: 16 }}>Convite criado, mas o e-mail não foi enviado</div>
-                <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 6, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 6, marginBottom: emailError ? 8 : 16 }}>
                   Copie o link abaixo e envie manualmente (WhatsApp, etc.) para {inviteEmail}.
                 </div>
+                {emailError && (
+                  <div style={{ fontSize: 11, color: '#ef4444', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 8, padding: '6px 10px', marginBottom: 16, textAlign: 'left' }}>
+                    Motivo: {emailError}
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box' }} />
                   <button
@@ -220,6 +228,7 @@ export default function EquipeScreen() {
                     setShowInvite(false);
                     setInviteSent(false);
                     setInviteLink('');
+                    setEmailError('');
                     setInviteEmail('');
                     setInviteNome('');
                     setInviteCargo('');

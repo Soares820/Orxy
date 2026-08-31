@@ -127,9 +127,12 @@ export async function POST(req: NextRequest) {
 
     const inviteUrl = linkData.properties.action_link;
     let emailSent = false;
+    let emailError: string | undefined;
 
     // Send custom email via Resend
-    if (process.env.RESEND_API_KEY) {
+    if (!process.env.RESEND_API_KEY) {
+      emailError = 'RESEND_API_KEY não configurada no servidor.';
+    } else {
       const safeName = escapeHtml(nome);
       const safeBy = escapeHtml(invited_by ?? 'Sua clínica');
       const safeCargo = escapeHtml(cargo ?? 'Terapeuta');
@@ -159,6 +162,7 @@ export async function POST(req: NextRequest) {
       if (!resendResp.ok) {
         const resendErr = await resendResp.json().catch(() => ({}));
         console.error('Resend error:', resendErr);
+        emailError = resendErr?.message ?? resendErr?.name ?? `Resend retornou status ${resendResp.status}`;
       } else {
         emailSent = true;
       }
@@ -170,6 +174,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       emailSent,
       inviteUrl,
+      emailError,
       message: emailSent
         ? `Convite enviado para ${email}`
         : `Convite criado, mas o e-mail não pôde ser enviado. Compartilhe o link manualmente.`,
