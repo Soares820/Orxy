@@ -38,6 +38,8 @@ export default function EquipeScreen() {
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [cargoFocused, setCargoFocused] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const CARGO_SUGESTOES = [
     'Terapeuta Ocupacional', 'Fonoaudióloga', 'Fonoaudiólogo', 'Psicopedagoga', 'Psicopedagogo',
@@ -62,6 +64,13 @@ export default function EquipeScreen() {
   };
 
   const initials = (name: string) => name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+
+  function openInvite() {
+    setInviteSent(false);
+    setInviteLink('');
+    setInviteError('');
+    setShowInvite(true);
+  }
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -97,14 +106,21 @@ export default function EquipeScreen() {
         return;
       }
       setInviteSent(true);
-      setTimeout(() => {
-        setShowInvite(false);
-        setInviteSent(false);
-        setInviteEmail('');
-        setInviteNome('');
-        setInviteCargo('');
-        setInvitePacienteId('');
-      }, 1800);
+      if (json.emailSent) {
+        setTimeout(() => {
+          setShowInvite(false);
+          setInviteSent(false);
+          setInviteEmail('');
+          setInviteNome('');
+          setInviteCargo('');
+          setInvitePacienteId('');
+        }, 1800);
+      } else {
+        // E-mail não pôde ser enviado (ex: Resend não configurado ou falhou) —
+        // o convite foi criado normalmente, então mantém o modal aberto com o
+        // link para o admin compartilhar manualmente em vez de fingir sucesso.
+        setInviteLink(json.inviteUrl ?? '');
+      }
     } catch {
       setInviteError('Erro de conexão. Tente novamente.');
     } finally {
@@ -122,7 +138,7 @@ export default function EquipeScreen() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-          <button className="btn-p" onClick={() => setShowInvite(true)}>+ Convidar membro</button>
+          <button className="btn-p" onClick={openInvite}>+ Convidar membro</button>
         </div>
 
         {team.length === 0 ? (
@@ -130,7 +146,7 @@ export default function EquipeScreen() {
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--bdr)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>Nenhum membro da equipe ainda</div>
             <div style={{ fontSize: 13, marginBottom: 24 }}>Convide terapeutas e recepcionistas para a sua clínica</div>
-            <button className="btn-p" onClick={() => setShowInvite(true)}>+ Convidar membro</button>
+            <button className="btn-p" onClick={openInvite}>+ Convidar membro</button>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 14 }}>
@@ -176,7 +192,45 @@ export default function EquipeScreen() {
               <h2 style={{ fontWeight: 800, fontSize: 18, color: 'var(--t1)', margin: 0 }}>Convidar membro</h2>
               <button onClick={() => setShowInvite(false)} style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 20 }}>×</button>
             </div>
-            {inviteSent ? (
+            {inviteSent && inviteLink ? (
+              <div style={{ textAlign: 'center', padding: '8px 0' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
+                <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: 16 }}>Convite criado, mas o e-mail não foi enviado</div>
+                <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 6, marginBottom: 16 }}>
+                  Copie o link abaixo e envie manualmente (WhatsApp, etc.) para {inviteEmail}.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '10px 12px', border: '1px solid var(--bdr)', borderRadius: 10, background: 'var(--sf)', color: 'var(--t1)', fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                  <button
+                    type="button"
+                    className="btn-p"
+                    style={{ flexShrink: 0 }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteLink);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    }}
+                  >
+                    {linkCopied ? 'Copiado!' : 'Copiar'}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInvite(false);
+                    setInviteSent(false);
+                    setInviteLink('');
+                    setInviteEmail('');
+                    setInviteNome('');
+                    setInviteCargo('');
+                    setInvitePacienteId('');
+                  }}
+                  style={{ marginTop: 16, background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}
+                >
+                  Fechar
+                </button>
+              </div>
+            ) : inviteSent ? (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
                 <div style={{ fontWeight: 700, color: '#10b981', fontSize: 16 }}>Convite enviado!</div>
