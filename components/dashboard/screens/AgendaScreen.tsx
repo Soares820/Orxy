@@ -35,7 +35,7 @@ export default function AgendaScreen() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Sessao | null>(null);
   const [form, setForm] = useState({
-    child_id: '', data: todayStr, hora: '09:00',
+    child_id: '', funcionario_id: '', data: todayStr, hora: '09:00',
     duracao_min: '50', tipo: 'ABA', status: 'agendado', notas: '',
   });
   const [saving, setSaving] = useState(false);
@@ -95,12 +95,12 @@ export default function AgendaScreen() {
 
   function openNew(date?: string) {
     setEditing(null);
-    setForm({ child_id: '', data: date ?? selectedDate, hora: '09:00', duracao_min: '50', tipo: 'ABA', status: 'agendado', notas: '' });
+    setForm({ child_id: '', funcionario_id: '', data: date ?? selectedDate, hora: '09:00', duracao_min: '50', tipo: 'ABA', status: 'agendado', notas: '' });
     setShowModal(true);
   }
   function openEdit(s: Sessao) {
     setEditing(s);
-    setForm({ child_id: String(s.child_id), data: s.data, hora: s.hora, duracao_min: String(s.duracao_min ?? 50), tipo: s.tipo, status: s.status, notas: s.notas ?? '' });
+    setForm({ child_id: String(s.child_id), funcionario_id: s.funcionario_id ? String(s.funcionario_id) : '', data: s.data, hora: s.hora, duracao_min: String(s.duracao_min ?? 50), tipo: s.tipo, status: s.status, notas: s.notas ?? '' });
     setShowModal(true);
   }
 
@@ -119,6 +119,7 @@ export default function AgendaScreen() {
       const payload = {
         clinic_id: state.user.clinicId,
         child_id: childId,
+        funcionario_id: form.funcionario_id ? Number(form.funcionario_id) : null,
         data: form.data,
         hora: form.hora,
         duracao_min: Number(form.duracao_min),
@@ -152,6 +153,8 @@ export default function AgendaScreen() {
   }
 
   const childName = (id: number) => data.children.find(c => c.id === id)?.name ?? '—';
+  const equipeAtiva = useMemo(() => data.team.filter(f => f.status === 'ativo'), [data.team]);
+  const funcName = (id?: number | null) => id ? data.team.find(f => f.id === id)?.nome ?? '—' : null;
 
   return (
     <div className="view show" id="v-agenda">
@@ -297,7 +300,7 @@ export default function AgendaScreen() {
                     <div className="agenda-sess-dot" style={{ background: statusDot(s.status) }} />
                     <div className="agenda-sess-body">
                       <div className="agenda-sess-name">{s.paciente_nome || childName(s.child_id)}</div>
-                      <div className="agenda-sess-meta">{s.tipo} · {s.duracao_min ?? 50}min</div>
+                      <div className="agenda-sess-meta">{s.tipo} · {s.duracao_min ?? 50}min{funcName(s.funcionario_id) ? ` · ${funcName(s.funcionario_id)}` : ''}</div>
                     </div>
                     <span className={`agenda-sess-tag ${statusTagClass(s.status)}`}>{statusLabel(s.status)}</span>
                   </div>
@@ -352,6 +355,15 @@ export default function AgendaScreen() {
                   <input type="number" value={form.duracao_min} onChange={e => setForm(f => ({ ...f, duracao_min: e.target.value }))} min="15" max="240" step="5"
                     style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--bdr)', borderRadius: 11, background: 'var(--sf2)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }} />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--t2)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.08em' }}>Terapeuta responsável</label>
+                <select value={form.funcionario_id} onChange={e => setForm(f => ({ ...f, funcionario_id: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 13px', border: '1px solid var(--bdr)', borderRadius: 11, background: 'var(--sf2)', color: 'var(--t1)', fontSize: 14, fontFamily: 'inherit' }}>
+                  <option value="">Não atribuído</option>
+                  {equipeAtiva.map(f => <option key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ''}</option>)}
+                </select>
               </div>
 
               <div>

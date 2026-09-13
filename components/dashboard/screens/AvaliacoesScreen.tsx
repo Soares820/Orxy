@@ -224,6 +224,7 @@ export default function AvaliacoesScreen() {
     }
   }, [data.children, selectedChildId]);
   const [form, setForm] = useState({
+    child_id: null as number | null,
     tipo: 'PEDI' as TipoAvaliacao,
     data: todayLocalISO(),
     notas: '',
@@ -256,6 +257,7 @@ export default function AvaliacoesScreen() {
   function openNew() {
     setSelectedAval(null);
     setForm({
+      child_id: selectedChildId,
       tipo: 'PEDI',
       data: todayLocalISO(),
       notas: '',
@@ -268,6 +270,7 @@ export default function AvaliacoesScreen() {
   function openEdit(a: Avaliacao) {
     setSelectedAval(a);
     setForm({
+      child_id: a.child_id,
       tipo: a.tipo,
       data: a.data,
       notas: a.notas ?? '',
@@ -287,7 +290,7 @@ export default function AvaliacoesScreen() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedChildId || !state.user?.clinicId) {
+    if (!form.child_id || !state.user?.clinicId) {
       setSaveError('Selecione um paciente e aguarde o carregamento da clínica.');
       return;
     }
@@ -310,7 +313,7 @@ export default function AvaliacoesScreen() {
 
       const payload = {
         clinic_id: state.user.clinicId,
-        child_id: selectedChildId,
+        child_id: form.child_id,
         tipo: form.tipo,
         data: form.data,
         notas: form.notas || null,
@@ -326,6 +329,7 @@ export default function AvaliacoesScreen() {
         if (error) { setSaveError(error.message); return; }
         if (created) dispatch({ type: 'SET_DATA', payload: { evaluations: [created, ...data.evaluations] } });
       }
+      if (form.child_id !== selectedChildId) setSelectedChildId(form.child_id);
       setShowModal(false);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Erro ao salvar');
@@ -579,6 +583,20 @@ export default function AvaliacoesScreen() {
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Paciente */}
+              <div>
+                <label style={labelStyle}>Paciente *</label>
+                <select
+                  value={form.child_id ?? ''}
+                  onChange={(e) => setForm(f => ({ ...f, child_id: e.target.value ? Number(e.target.value) : null }))}
+                  required
+                  style={{ ...inputStyle }}
+                >
+                  <option value="">Selecione o paciente...</option>
+                  {data.children.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+
               {/* Instrumento + Data */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
