@@ -24,6 +24,7 @@ const EMPTY_DATA: AppData = {
   profiles: [],
   expenses: [],
   fornecedores: [],
+  estoque: [],
 };
 
 const initialState: AppState = {
@@ -148,13 +149,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
             sessions:     pick(sess as PromiseSettledResult<{ data: unknown[] | null }>),
             goals:        pick(met as PromiseSettledResult<{ data: unknown[] | null }>),
             evaluations:  pick(aval as PromiseSettledResult<{ data: unknown[] | null }>),
-            contracts: [], payments: [], team: [], profiles: [], expenses: [], fornecedores: [],
+            contracts: [], payments: [], team: [], profiles: [], expenses: [], fornecedores: [], estoque: [],
           },
         });
         return;
       }
 
-      const [pac, sess, cont, pag, met, aval, func, usuarios, desp, forn] = await Promise.allSettled([
+      const [pac, sess, cont, pag, met, aval, func, usuarios, desp, forn, estq] = await Promise.allSettled([
         supabase.from('pacientes').select('*').eq('clinic_id', clinicId).order('name'),
         supabase.from('sessoes').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
         supabase.from('contratos').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }),
@@ -165,6 +166,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('users').select('*').eq('clinic_id', clinicId).order('nome'),
         supabase.from('despesas').select('*').eq('clinic_id', clinicId).order('mes', { ascending: false }),
         supabase.from('fornecedores').select('*').eq('clinic_id', clinicId).eq('status', 'ativo').order('nome'),
+        supabase.from('estoque').select('*').eq('clinic_id', clinicId).eq('status', 'ativo').order('nome'),
       ]);
 
       dispatch({
@@ -180,6 +182,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           profiles:     pick(usuarios as PromiseSettledResult<{ data: unknown[] | null }>),
           expenses:     pick(desp as PromiseSettledResult<{ data: unknown[] | null }>),
           fornecedores: pick(forn as PromiseSettledResult<{ data: unknown[] | null }>),
+          estoque:      pick(estq as PromiseSettledResult<{ data: unknown[] | null }>),
         },
       });
     } catch (e) {

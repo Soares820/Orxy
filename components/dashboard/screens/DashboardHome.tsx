@@ -53,6 +53,7 @@ export default function DashboardHome({ onNav }: Props) {
     bi:          ['admin', 'financeiro'],
     equipe:        ['admin'],
     fornecedores:  ['admin', 'financeiro'],
+    estoque:       ['admin', 'recepcao'],
     reavix:        ['admin', 'terapeuta'],
   };
 
@@ -146,6 +147,17 @@ export default function DashboardHome({ onNav }: Props) {
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      ),
+    },
+    {
+      key: 'estoque',
+      label: 'Estoque',
+      sub: 'Materiais e inventário',
+      color: 'dt-cyan' as string,
+      icon: (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 8V6a2 2 0 00-2-2H5a2 2 0 00-2 2v2"/><path d="M3 8l2 12a2 2 0 002 2h10a2 2 0 002-2l2-12"/><path d="M3 8h18"/><path d="M9 12h6"/>
         </svg>
       ),
     },

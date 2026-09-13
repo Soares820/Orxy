@@ -158,6 +158,32 @@ export interface Fornecedor {
   created_at?: string;
 }
 
+export interface EstoqueItem {
+  id: number;
+  clinic_id: string;
+  nome: string;
+  categoria: 'terapeutico' | 'escritorio' | 'higiene_epi' | 'alimentacao' | 'limpeza' | 'outros';
+  quantidade: number;
+  unidade: string;
+  estoque_minimo: number;
+  fornecedor_id?: number | null;
+  validade?: string | null;
+  notas?: string | null;
+  status: 'ativo' | 'inativo';
+  created_at?: string;
+}
+
+export interface EstoqueMovimentacao {
+  id: number;
+  clinic_id: string;
+  estoque_id: number;
+  tipo: 'entrada' | 'saida' | 'ajuste';
+  quantidade: number;
+  motivo?: string | null;
+  usuario_nome?: string | null;
+  created_at?: string;
+}
+
 export interface BlogPost {
   id: number;
   titulo: string;
@@ -184,6 +210,7 @@ export type Screen =
   | 'avaliacoes'
   | 'questionarios'
   | 'fornecedores'
+  | 'estoque'
   | 'reavix'
   | 'portal'
   | 'conta';
@@ -225,6 +252,7 @@ export interface AppData {
   profiles: Usuario[];
   expenses: Despesa[];
   fornecedores: Fornecedor[];
+  estoque: EstoqueItem[];
 }
 
 export interface AppUser {
